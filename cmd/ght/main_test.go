@@ -29,6 +29,6 @@ func TestMainFunc(t *testing.T) {
 	mainapp.Main()
 
 	out := buf.String()
-	assert.Check(t, strings.Contains(out, "Ghet artifacts from GitHub releases"))
+	assert.Check(t, strings.Contains(out, "Gʰet artifacts from GitHub releases"))
 	assert.Check(t, retcode == math.MinInt64)
 }

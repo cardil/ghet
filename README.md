@@ -1,3 +1,3 @@
-# *Gh*et
+# *Gʰ*et
 
-**Gh**et artifacts from GitHub releases. Also, a package manager. And an API.
+**Gʰ**et artifacts from GitHub releases. Also, a package manager. And an API.
