@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/cardil/ghet v0.0.0
-	github.com/wavesoftware/go-magetasks v0.8.0
+	github.com/wavesoftware/go-magetasks v0.8.1
 )
 
 require (
