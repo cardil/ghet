@@ -2,10 +2,10 @@ package ght
 
 import "github.com/spf13/cobra"
 
-func removeCmd() *cobra.Command {
+func removeCmd(_ *Args) *cobra.Command {
 	return &cobra.Command{
 		Use:   "remove",
-		Short: "Remove installed artifact",
+		Short: "Remove an installed artifact",
 		Run: func(cmd *cobra.Command, args []string) {
 			cmd.Println("remove")
 		},

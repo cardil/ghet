@@ -5,7 +5,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func versionCmd() *cobra.Command {
+func versionCmd(_ *Args) *cobra.Command {
 	return &cobra.Command{
 		Use:   "version",
 		Short: "Print the version information",

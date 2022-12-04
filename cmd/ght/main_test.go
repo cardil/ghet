@@ -3,13 +3,12 @@ package main_test
 import (
 	"bytes"
 	"math"
-	"strings"
 	"testing"
 
 	mainapp "github.com/cardil/ghet/cmd/ght"
 	"github.com/cardil/ghet/internal/ght"
+	"github.com/stretchr/testify/assert"
 	"github.com/wavesoftware/go-commandline"
-	"gotest.tools/v3/assert"
 )
 
 func TestMainFunc(t *testing.T) {
@@ -29,6 +28,6 @@ func TestMainFunc(t *testing.T) {
 	mainapp.Main()
 
 	out := buf.String()
-	assert.Check(t, strings.Contains(out, "Gʰet artifacts from GitHub releases"))
-	assert.Check(t, retcode == math.MinInt64)
+	assert.Contains(t, out, "Gʰet artifacts from GitHub releases")
+	assert.Equal(t, retcode, math.MinInt64)
 }
