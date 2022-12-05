@@ -16,14 +16,16 @@ import (
 	"github.com/kirsle/configdir"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
+
+	"github.com/1set/gut/yos"
 )
 
 var ErrNoAssetFound = errors.New("no matching asset found")
 
 func Action(ctx context.Context, args Args) error {
 	l := log.
-		WithField("Owner", args.Owner).
-		WithField("Repo", args.Repo)
+		WithField("owner", args.Owner).
+		WithField("repo", args.Repo)
 	client := githubapi.NewClient(ctx, args.EffectiveToken())
 	var (
 		rr  *github.RepositoryRelease
@@ -45,13 +47,13 @@ func Action(ctx context.Context, args Args) error {
 			return errors.WithStack(err)
 		}
 	}
-	l.WithField("Response", r).
-		WithField("Release", rr).
+	l.WithField("response", r).
+		WithField("release", rr).
 		Trace("Github API response")
 
 	for _, asset := range rr.Assets {
 		if assetMatches(asset, args) {
-			l = l.WithField("Asset", asset)
+			l = l.WithField("asset", asset)
 			l.Debug("Asset matches")
 			return downloadAsset(ctx, l, asset, args)
 		}
@@ -72,14 +74,15 @@ func downloadAsset(
 	cachePath = path.Join(cachePath, fmt.Sprintf("%d", asset.GetID()))
 
 	if fileExists(l, cachePath, asset.GetSize()) {
-		l.WithField("CachePath", cachePath).
+		l.WithField("cachePath", cachePath).
 			Debug("Asset already downloaded")
 		return copyFile(cachePath, args)
 	}
 
 	l.Info("Downloading asset")
 	cl := http.Client{}
-	req, err := http.NewRequestWithContext(ctx, "GET", asset.GetBrowserDownloadURL(), nil)
+	req, err := http.NewRequestWithContext(ctx,
+		http.MethodGet, asset.GetBrowserDownloadURL(), nil)
 	if err != nil {
 		return errors.WithStack(err)
 	}
@@ -107,7 +110,11 @@ func downloadAsset(
 }
 
 func copyFile(cachePath string, args Args) error {
-	if err := os.Link(cachePath, path.Join(args.Destination, args.BaseName)); err != nil {
+	bin := path.Join(args.Destination, args.BaseName)
+	if err := yos.MoveFile(cachePath, bin); err != nil {
+		return errors.WithStack(err)
+	}
+	if err := os.Chmod(bin, 0o755); err != nil {
 		return errors.WithStack(err)
 	}
 	return nil
@@ -131,5 +138,5 @@ func fileExists(l *log.Entry, path string, size int) bool {
 		_ = os.Remove(path)
 		return false
 	}
-	return os.IsNotExist(err)
+	return !os.IsNotExist(err)
 }

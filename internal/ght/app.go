@@ -43,7 +43,7 @@ func (a *App) Command() *cobra.Command {
 
 func handle(args *Args, fn func(ctx context.Context) error) func(cmd *cobra.Command, args []string) error {
 	return func(cmd *cobra.Command, _ []string) error {
-		log.SetOutput(cmd.ErrOrStderr())
+		setupLogging(cmd)
 		ctx := cmd.Context()
 		ctx = output.WithContext(ctx, cmd)
 		cfg, err := config.Load(args.ConfigPath)
@@ -56,3 +56,15 @@ func handle(args *Args, fn func(ctx context.Context) error) func(cmd *cobra.Comm
 }
 
 var _ commandline.CobraProvider = new(App)
+
+func setupLogging(outs output.StandardOutputs) {
+	log.SetOutput(outs.ErrOrStderr())
+	if lvl := os.Getenv("LOG_LEVEL"); lvl != "" {
+		l, err := log.ParseLevel(lvl)
+		if err != nil {
+			log.WithError(err).Error("Failed to parse LOG_LEVEL")
+		} else {
+			log.SetLevel(l)
+		}
+	}
+}
