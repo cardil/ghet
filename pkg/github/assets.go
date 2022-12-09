@@ -1,13 +1,25 @@
 package github
 
+import (
+	"path"
+	"strings"
+)
+
 type FileName struct {
 	BaseName  string
 	Extension string
 }
 
+func (n FileName) ToString() string {
+	joiner := "."
+	if strings.HasPrefix(n.Extension, ".") {
+		joiner = ""
+	}
+	return n.BaseName + joiner + n.Extension
+}
+
 type Checksums struct {
 	FileName
-	Release
 }
 
 type Asset struct {
@@ -16,4 +28,16 @@ type Asset struct {
 	OperatingSystem
 	Release
 	Checksums
+}
+
+func NewFileName(s string) FileName {
+	basename := s
+	ext := path.Ext(s)
+	if ext != "" {
+		basename = strings.TrimSuffix(s, ext)
+	}
+	return FileName{
+		BaseName:  basename,
+		Extension: ext,
+	}
 }

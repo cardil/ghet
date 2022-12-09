@@ -3,12 +3,13 @@ package config
 import (
 	"os"
 
-	log "github.com/sirupsen/logrus"
+	log "github.com/go-eden/slf4go"
 	"sigs.k8s.io/yaml"
 )
 
 func Load(file string) (Config, error) {
-	l := log.WithField("configPath", file)
+	l := log.NewLogger("config").
+		WithFields(log.Fields{"configPath": file})
 	l.Debug("Loading config as YAML")
 	defaults := Config{
 		Sites: []Site{{

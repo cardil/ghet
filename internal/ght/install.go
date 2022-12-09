@@ -5,7 +5,6 @@ import (
 	"errors"
 	"path"
 	"regexp"
-	"strings"
 
 	"github.com/cardil/ghet/pkg/config"
 	"github.com/cardil/ghet/pkg/ghet/install"
@@ -37,10 +36,11 @@ type installArgs struct {
 }
 
 func (ia *installArgs) defaults() installArgs {
+	defs := install.Args{}.WithDefaults()
 	return installArgs{
-		site:      "github.com",
-		checksums: "checksums.txt",
-		version:   "latest",
+		site:      defs.Site.Address,
+		checksums: defs.Checksums.FileName.ToString(),
+		version:   defs.Tag,
 	}
 }
 
@@ -54,6 +54,8 @@ func (ia *installArgs) setFlags(c *cobra.Command) {
 	fl.StringVar(&ia.basename, "basename",
 		defs.basename, "a basename of the artifact, "+
 			"if not given a repo name will be used")
+	fl.StringVar(&ia.checksums, "checksums", defs.checksums,
+		"a checksums file name")
 	c.Args = cobra.ExactArgs(1)
 }
 
@@ -73,23 +75,21 @@ func (ia *installArgs) valiadate() func(cmd *cobra.Command, args []string) error
 
 func (ia *installArgs) parse(ctx context.Context) install.Args {
 	cfg := config.FromContext(ctx)
-	release := github.Release{
-		Tag:        ia.version,
-		Repository: ia.repository(),
-	}
-	return install.Args{
+	args := install.Args{
 		Asset: github.Asset{
-			FileName:        ia.filename(),
-			Architecture:    github.CurrentArchitecture(),
-			OperatingSystem: github.CurrentOS(),
-			Release:         release,
+			FileName: ia.filename(),
+			Release: github.Release{
+				Tag:        ia.version,
+				Repository: ia.repository(),
+			},
 			Checksums: github.Checksums{
 				FileName: ia.checksumsFilename(),
-				Release:  release,
 			},
 		},
 		Site: cfg.Site(ia.site),
 	}
+	args = args.WithDefaults()
+	return args
 }
 
 func (ia *installArgs) repository() github.Repository {
@@ -101,21 +101,9 @@ func (ia *installArgs) repository() github.Repository {
 }
 
 func (ia *installArgs) filename() github.FileName {
-	return toFileName(ia.basename)
+	return github.NewFileName(ia.basename)
 }
 
 func (ia *installArgs) checksumsFilename() github.FileName {
-	return toFileName(ia.checksums)
-}
-
-func toFileName(s string) github.FileName {
-	basename := s
-	ext := path.Ext(s)
-	if ext != "" {
-		basename = strings.TrimSuffix(s, ext)
-	}
-	return github.FileName{
-		BaseName:  basename,
-		Extension: ext,
-	}
+	return github.NewFileName(ia.checksums)
 }

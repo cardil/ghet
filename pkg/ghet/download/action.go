@@ -4,18 +4,17 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"path"
 	"strings"
 
-	"net/http"
-
 	githubapi "github.com/cardil/ghet/pkg/github/api"
 	"github.com/cardil/ghet/pkg/metadata"
+	log "github.com/go-eden/slf4go"
 	"github.com/google/go-github/v48/github"
 	"github.com/kirsle/configdir"
 	"github.com/pkg/errors"
-	log "github.com/sirupsen/logrus"
 
 	"github.com/1set/gut/yos"
 )
@@ -24,8 +23,11 @@ var ErrNoAssetFound = errors.New("no matching asset found")
 
 func Action(ctx context.Context, args Args) error {
 	l := log.
-		WithField("owner", args.Owner).
-		WithField("repo", args.Repo)
+		NewLogger("download").
+		WithFields(log.Fields{
+			"owner": args.Owner,
+			"repo":  args.Repo,
+		})
 	client := githubapi.NewClient(ctx, args.EffectiveToken())
 	var (
 		rr  *github.RepositoryRelease
@@ -40,20 +42,21 @@ func Action(ctx context.Context, args Args) error {
 		}
 		args.Tag = *rr.TagName
 	} else {
-		l.WithField("Tag", args.Tag).
+		l.WithFields(log.Fields{"Tag": args.Tag}).
 			Debug("Getting release")
 		rr, r, err = client.Repositories.GetReleaseByTag(ctx, args.Owner, args.Repo, args.Tag)
 		if err != nil {
 			return errors.WithStack(err)
 		}
 	}
-	l.WithField("response", r).
-		WithField("release", rr).
-		Trace("Github API response")
+	l.WithFields(log.Fields{
+		"response": r,
+		"release":  rr,
+	}).Trace("Github API response")
 
 	for _, asset := range rr.Assets {
 		if assetMatches(asset, args) {
-			l = l.WithField("asset", asset)
+			l = l.WithFields(log.Fields{"asset": asset})
 			l.Debug("Asset matches")
 			return downloadAsset(ctx, l, asset, args)
 		}
@@ -63,7 +66,7 @@ func Action(ctx context.Context, args Args) error {
 
 func downloadAsset(
 	ctx context.Context,
-	l *log.Entry,
+	l *log.Logger,
 	asset *github.ReleaseAsset,
 	args Args,
 ) error {
@@ -74,7 +77,7 @@ func downloadAsset(
 	cachePath = path.Join(cachePath, fmt.Sprintf("%d", asset.GetID()))
 
 	if fileExists(l, cachePath, asset.GetSize()) {
-		l.WithField("cachePath", cachePath).
+		l.WithFields(log.Fields{"cachePath": cachePath}).
 			Debug("Asset already downloaded")
 		return copyFile(cachePath, args)
 	}
@@ -126,15 +129,16 @@ func assetMatches(asset *github.ReleaseAsset, args Args) bool {
 		strings.Contains(asset.GetName(), string(args.OperatingSystem))
 }
 
-func fileExists(l *log.Entry, path string, size int) bool {
+func fileExists(l *log.Logger, path string, size int) bool {
 	fi, err := os.Stat(path)
 	if err == nil {
 		if fi.Size() == int64(size) {
 			return true
 		}
-		l.WithField("file-info", fi).
-			WithField("size", size).
-			Trace("File size mismatch")
+		l.WithFields(log.Fields{
+			"file-info": fi,
+			"size":      size,
+		}).Trace("File size mismatch")
 		_ = os.Remove(path)
 		return false
 	}

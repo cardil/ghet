@@ -7,7 +7,8 @@ import (
 	"github.com/cardil/ghet/pkg/config"
 	"github.com/cardil/ghet/pkg/metadata"
 	"github.com/cardil/ghet/pkg/output"
-	log "github.com/sirupsen/logrus"
+	sl "github.com/go-eden/slf4go-logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/wavesoftware/go-commandline"
 )
@@ -58,13 +59,14 @@ func handle(args *Args, fn func(ctx context.Context) error) func(cmd *cobra.Comm
 var _ commandline.CobraProvider = new(App)
 
 func setupLogging(outs output.StandardOutputs) {
-	log.SetOutput(outs.ErrOrStderr())
+	sl.Init()
+	logrus.SetOutput(outs.ErrOrStderr())
 	if lvl := os.Getenv("LOG_LEVEL"); lvl != "" {
-		l, err := log.ParseLevel(lvl)
+		l, err := logrus.ParseLevel(lvl)
 		if err != nil {
-			log.WithError(err).Error("Failed to parse LOG_LEVEL")
+			logrus.WithError(err).Error("Failed to parse LOG_LEVEL")
 		} else {
-			log.SetLevel(l)
+			logrus.SetLevel(l)
 		}
 	}
 }
