@@ -3,6 +3,8 @@ package install
 import (
 	"github.com/cardil/ghet/pkg/config"
 	"github.com/cardil/ghet/pkg/github"
+	log "github.com/go-eden/slf4go"
+	"github.com/imdario/mergo"
 )
 
 type Args struct {
@@ -11,29 +13,30 @@ type Args struct {
 }
 
 func (a Args) WithDefaults() Args {
-	if a.Tag == "" {
-		a.Tag = "latest"
+	defs := Args{
+		Asset: github.Asset{
+			Architecture:    github.CurrentArchitecture(),
+			OperatingSystem: github.CurrentOS(),
+			Release: github.Release{
+				Tag: "latest",
+			},
+			Checksums: github.Checksums{
+				FileName: github.FileName{
+					BaseName:  "checksums",
+					Extension: "txt",
+				},
+			},
+		},
+		Site: config.Site{
+			Type:    config.TypeGitHub,
+			Address: "github.com",
+		},
 	}
-	if a.Site.Address == "" {
-		a.Site.Address = "github.com"
-	}
-	if a.Site.Type == "" {
-		a.Site.Type = config.TypeGitHub
+	if err := mergo.Merge(&a, defs); err != nil {
+		log.Panic(err)
 	}
 	if a.Asset.FileName.BaseName == "" {
 		a.Asset.FileName.BaseName = a.Repo
-	}
-	if a.Architecture == "" {
-		a.Architecture = github.CurrentArchitecture()
-	}
-	if a.OperatingSystem == "" {
-		a.OperatingSystem = github.CurrentOS()
-	}
-	if a.Checksums.FileName.BaseName == "" {
-		a.Checksums.FileName.BaseName = "checksums"
-	}
-	if a.Checksums.FileName.Extension == "" {
-		a.Checksums.FileName.Extension = "txt"
 	}
 	if a.OperatingSystem == github.OSWindows && a.Asset.FileName.Extension == "" {
 		a.Asset.FileName.Extension = "exe"

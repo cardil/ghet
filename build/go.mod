@@ -1,6 +1,6 @@
 module github.com/cardil/ghet/build
 
-go 1.18
+go 1.19
 
 require (
 	github.com/cardil/ghet v0.0.0

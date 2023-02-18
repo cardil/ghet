@@ -1,12 +1,13 @@
 module github.com/cardil/ghet
 
-go 1.18
+go 1.19
 
 require (
 	github.com/1set/gut v0.0.0-20201117175203-a82363231997
 	github.com/go-eden/slf4go v1.0.4
 	github.com/go-eden/slf4go-logrus v1.0.0
 	github.com/google/go-github/v48 v48.1.0
+	github.com/imdario/mergo v0.3.13
 	github.com/kirsle/configdir v0.0.0-20170128060238-e45d2f54772f
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.9.0

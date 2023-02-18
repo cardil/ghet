@@ -61,8 +61,10 @@ var _ commandline.CobraProvider = new(App)
 func setupLogging(outs output.StandardOutputs) {
 	sl.Init()
 	logrus.SetOutput(outs.ErrOrStderr())
+	l := logrus.WarnLevel
+	var err error
 	if lvl := os.Getenv("LOG_LEVEL"); lvl != "" {
-		l, err := logrus.ParseLevel(lvl)
+		l, err = logrus.ParseLevel(lvl)
 		if err != nil {
 			logrus.WithError(err).Error("Failed to parse LOG_LEVEL")
 		} else {
