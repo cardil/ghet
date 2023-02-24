@@ -2,6 +2,8 @@ package github
 
 import "runtime"
 
+const LatestTag = "latest"
+
 type Repository struct {
 	Owner string
 	Repo  string

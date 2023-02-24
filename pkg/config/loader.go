@@ -1,14 +1,16 @@
 package config
 
 import (
+	"context"
 	"os"
 
+	"github.com/cardil/ghet/pkg/output"
 	log "github.com/go-eden/slf4go"
 	"sigs.k8s.io/yaml"
 )
 
-func Load(file string) (Config, error) {
-	l := log.NewLogger("config").
+func Load(ctx context.Context, file string) (Config, error) {
+	l := output.LoggerFrom(ctx).
 		WithFields(log.Fields{"configPath": file})
 	l.Debug("Loading config as YAML")
 	defaults := Config{

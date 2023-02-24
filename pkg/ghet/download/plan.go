@@ -4,6 +4,7 @@ import (
 	"context"
 	"strings"
 
+	pkggithub "github.com/cardil/ghet/pkg/github"
 	githubapi "github.com/cardil/ghet/pkg/github/api"
 	"github.com/cardil/ghet/pkg/output"
 	slog "github.com/go-eden/slf4go"
@@ -14,7 +15,15 @@ import (
 var ErrNoAssetFound = errors.New("no matching asset found")
 
 type Plan struct {
-	Assets []*github.ReleaseAsset
+	Assets []Asset
+}
+
+type Asset struct {
+	ID          int64
+	Name        string
+	ContentType string
+	Size        int
+	URL         string
 }
 
 func CreatePlan(ctx context.Context, args Args) (*Plan, error) {
@@ -29,7 +38,7 @@ func CreatePlan(ctx context.Context, args Args) (*Plan, error) {
 		r   *github.Response
 		err error
 	)
-	if args.Tag == "latest" {
+	if args.Tag == pkggithub.LatestTag {
 		log.Debug("Getting latest release")
 		rr, r, err = client.Repositories.GetLatestRelease(ctx, args.Owner, args.Repo)
 		if err != nil {
@@ -50,12 +59,18 @@ func CreatePlan(ctx context.Context, args Args) (*Plan, error) {
 		"release":  rr,
 	}).Trace("Github API response")
 
-	assets := make([]*github.ReleaseAsset, 0, 1)
+	assets := make([]Asset, 0, 1)
 	for _, asset := range rr.Assets {
 		if assetMatches(asset, args) {
 			log.WithFields(slog.Fields{"asset": asset}).
 				Debug("Asset matches")
-			assets = append(assets, asset)
+			assets = append(assets, Asset{
+				ID:          asset.GetID(),
+				Name:        asset.GetName(),
+				ContentType: asset.GetContentType(),
+				Size:        asset.GetSize(),
+				URL:         asset.GetBrowserDownloadURL(),
+			})
 		}
 	}
 	if len(assets) == 0 {

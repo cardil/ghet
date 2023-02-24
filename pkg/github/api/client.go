@@ -8,7 +8,7 @@ import (
 	"golang.org/x/oauth2"
 )
 
-var clientKey = struct{}{}
+type clientKey struct{}
 
 func NewClient(ctx context.Context, token string) *github.Client {
 	var httpClient *http.Client
@@ -23,12 +23,12 @@ func NewClient(ctx context.Context, token string) *github.Client {
 }
 
 func FromContext(ctx context.Context) *github.Client {
-	if cl, ok := ctx.Value(clientKey).(*github.Client); ok {
+	if cl, ok := ctx.Value(clientKey{}).(*github.Client); ok {
 		return cl
 	}
 	return NewClient(ctx, "")
 }
 
 func WithContext(ctx context.Context, cl *github.Client) context.Context {
-	return context.WithValue(ctx, clientKey, cl)
+	return context.WithValue(ctx, clientKey{}, cl)
 }

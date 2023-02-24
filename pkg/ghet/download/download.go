@@ -12,35 +12,31 @@ import (
 	"github.com/cardil/ghet/pkg/metadata"
 	"github.com/cardil/ghet/pkg/output"
 	slog "github.com/go-eden/slf4go"
-	"github.com/google/go-github/v48/github"
 	"github.com/kirsle/configdir"
 	"github.com/pkg/errors"
 )
 
 const executableMode = 0o755
 
-func downloadAsset(
-	ctx context.Context,
-	asset *github.ReleaseAsset,
-	args Args,
-) error {
-	l := output.LoggerFrom(ctx)
+func downloadAsset(ctx context.Context, asset Asset, args Args) error {
+	l := output.LoggerFrom(ctx).WithFields(slog.Fields{
+		"asset": asset.Name,
+	})
 	cachePath := configdir.LocalCache(metadata.Name)
 	if err := configdir.MakePath(cachePath); err != nil {
 		return errors.WithStack(err)
 	}
-	cachePath = path.Join(cachePath, fmt.Sprintf("%d", asset.GetID()))
+	cachePath = path.Join(cachePath, fmt.Sprintf("%d", asset.ID))
 
-	if fileExists(l, cachePath, asset.GetSize()) {
+	if fileExists(l, cachePath, asset.Size) {
 		l.WithFields(slog.Fields{"cachePath": cachePath}).
 			Debug("Asset already downloaded")
-		return copyFile(cachePath, nil, args)
+		return copyFile(cachePath, asset, args)
 	}
 
 	l.Debug("Downloading asset")
 	cl := http.Client{}
-	req, err := http.NewRequestWithContext(ctx,
-		http.MethodGet, asset.GetBrowserDownloadURL(), nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, asset.URL, nil)
 	if err != nil {
 		return errors.WithStack(err)
 	}
@@ -67,12 +63,12 @@ func downloadAsset(
 	return copyFile(cachePath, asset, args)
 }
 
-func copyFile(cachePath string, asset *github.ReleaseAsset, args Args) error {
+func copyFile(cachePath string, asset Asset, args Args) error {
 	bin := path.Join(args.Destination, args.Asset.FileName.ToString())
 	if err := yos.MoveFile(cachePath, bin); err != nil {
 		return errors.WithStack(err)
 	}
-	if asset.GetContentType() == "application/octet-stream" {
+	if asset.ContentType == "application/octet-stream" {
 		if err := os.Chmod(bin, executableMode); err != nil {
 			return errors.WithStack(err)
 		}
