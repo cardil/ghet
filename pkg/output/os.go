@@ -5,16 +5,20 @@ import (
 	"os"
 )
 
-type OsOutputs struct{}
+type OsInOut struct{}
 
-var OsPrinter = stdPrinter{OsOutputs{}} //nolint:gochecknoglobals
+var OsPrinter = stdPrinter{OsInOut{}} //nolint:gochecknoglobals
 
-func (o OsOutputs) OutOrStderr() io.Writer {
+func (o OsInOut) InOrStdin() io.Reader {
+	return os.Stdin
+}
+
+func (o OsInOut) OutOrStdout() io.Writer {
 	return os.Stdout
 }
 
-func (o OsOutputs) ErrOrStderr() io.Writer {
+func (o OsInOut) ErrOrStderr() io.Writer {
 	return os.Stderr
 }
 
-var _ StandardOutputs = OsOutputs{}
+var _ InputOutput = OsInOut{}

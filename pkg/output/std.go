@@ -2,7 +2,8 @@ package output
 
 import "io"
 
-type StandardOutputs interface {
-	OutOrStderr() io.Writer
+type InputOutput interface {
+	InOrStdin() io.Reader
+	OutOrStdout() io.Writer
 	ErrOrStderr() io.Writer
 }

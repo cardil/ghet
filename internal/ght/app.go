@@ -7,6 +7,7 @@ import (
 	"github.com/cardil/ghet/pkg/config"
 	"github.com/cardil/ghet/pkg/metadata"
 	"github.com/cardil/ghet/pkg/output"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/wavesoftware/go-commandline"
 )
@@ -36,8 +37,22 @@ func (a *App) Command() *cobra.Command {
 		c.AddCommand(cmd(&a.Args))
 	}
 	c.SetOut(os.Stdout)
+	c.SetContext(output.EnsureLogFile(context.Background()))
 	a.setFlags(c)
+	c.PostRunE = postRunE
 	return c
+}
+
+func postRunE(cmd *cobra.Command, _ []string) error {
+	ctx := cmd.Context()
+	logFile := output.LogFileFrom(ctx)
+	if err := logFile.Sync(); err != nil {
+		return errors.WithStack(err)
+	}
+	if err := logFile.Close(); err != nil {
+		return errors.WithStack(err)
+	}
+	return nil
 }
 
 func handle(args *Args, fn func(ctx context.Context) error) func(cmd *cobra.Command, args []string) error {

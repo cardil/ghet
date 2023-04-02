@@ -76,7 +76,7 @@ func copyFile(cachePath string, asset Asset, args Args) error {
 	return nil
 }
 
-func fileExists(l *slog.Logger, path string, size int) bool {
+func fileExists(l slog.Logger, path string, size int) bool {
 	fi, err := os.Stat(path)
 	if err == nil {
 		if fi.Size() == int64(size) {

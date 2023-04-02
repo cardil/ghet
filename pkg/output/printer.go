@@ -11,15 +11,15 @@ type Printer interface {
 	PrintErrln(i ...any)
 	PrintErrf(format string, i ...any)
 
-	StandardOutputs
+	InputOutput
 }
 
 type stdPrinter struct {
-	StandardOutputs
+	InputOutput
 }
 
 func (p stdPrinter) Print(i ...any) {
-	_, _ = fmt.Fprint(p.OutOrStderr(), i...)
+	_, _ = fmt.Fprint(p.OutOrStdout(), i...)
 }
 
 func (p stdPrinter) Println(i ...any) {

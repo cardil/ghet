@@ -63,7 +63,7 @@ func CreatePlan(ctx context.Context, args Args) (*Plan, error) {
 	for _, asset := range rr.Assets {
 		if assetMatches(asset, args) {
 			log.WithFields(slog.Fields{"asset": asset}).
-				Debug("Asset matches")
+				Trace("Asset matches")
 			assets = append(assets, Asset{
 				ID:          asset.GetID(),
 				Name:        asset.GetName(),
@@ -76,6 +76,8 @@ func CreatePlan(ctx context.Context, args Args) (*Plan, error) {
 	if len(assets) == 0 {
 		return nil, errors.WithStack(ErrNoAssetFound)
 	}
+	log.WithFields(slog.Fields{"assets": len(assets)}).
+		Debug("Plan created")
 	return &Plan{Assets: assets}, nil
 }
 

@@ -382,7 +382,7 @@ github.com/bazelbuild/bazelisk v1.13.2 h1:SpigbUorngcfDULmft0WkdrYVCqqqsFPEW4hm8
 github.com/bazelbuild/rules_go v0.34.0 h1:cmObMtgIOaEU944SqXtJ9DnlS8IPGGa7pdRnsrpQzXM=
 github.com/beeker1121/goque v1.0.3-0.20191103205551-d618510128af h1:XbgLdZvVbWsK9HAhAYOp6rksTAdOVYDBQtGSVOLlJrw=
 github.com/beevik/etree v1.1.0 h1:T0xke/WvNtMoCqgzPhkX2r4rjY3GDZFi+FjpRZY2Jbs=
-github.com/benbjohnson/clock v1.1.0 h1:Q92kusRqC1XV2MjkWETPvjJVqKetz1OzxZB7mHJLju8=
+github.com/benbjohnson/clock v1.3.0 h1:ip6w0uFQkncKQ979AypyG0ER7mqUSBdKLOgAle/AT8A=
 github.com/bgentry/speakeasy v0.1.0 h1:ByYyxL9InA1OWqxJqqp2A5pYHUrCiAL6K3J+LKSsQkY=
 github.com/bitly/go-simplejson v0.5.0 h1:6IH+V8/tVMab511d5bn4M7EwGXZf9Hj6i2xSwkNEM+Y=
 github.com/bits-and-blooms/bitset v1.2.0 h1:Kn4yilvwNtMACtf1eYDlG8H77R07mZSPbMjLyS07ChA=
@@ -1106,7 +1106,6 @@ go.opentelemetry.io/otel/trace v1.11.1 h1:ofxdnzsNrGBYXbP7t7zpUK281+go5rF7dvdIZX
 go.opentelemetry.io/proto/otlp v0.16.0 h1:WHzDWdXUvbc5bG2ObdrGfaNpQz7ft7QN9HHmJlbiB1E=
 go.step.sm/crypto v0.14.0 h1:HzSkUDwqKhODKpsTxevJz956U2xVDZ3sDdGQVwR6Ttw=
 go.step.sm/crypto v0.21.0 h1:Qwxk5JrqG0Q1t8tOfDM3zKTNECG6J5J24qgWZCRM0Ic=
-go.uber.org/atomic v1.10.0 h1:9qC72Qh0+3MqyJbAn8YU5xVq1frD8bn3JtD2oXtafVQ=
 go.uber.org/goleak v1.1.12 h1:gZAh5/EyT/HQwlpkCy6wTpqfH9H8Lz8zbm3dZh+OyzA=
 go.uber.org/goleak v1.2.0 h1:xqgm/S+aQvhWFTtR0XK3Jvg7z8kGV8P4X14IzwN3Eqk=
 go.uber.org/multierr v1.8.0 h1:dg6GjLku4EH+249NNmoIciG9N/jURbDG+pFlTkhzIC8=

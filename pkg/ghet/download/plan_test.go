@@ -1,7 +1,6 @@
 package download_test
 
 import (
-	"context"
 	"embed"
 	"fmt"
 	"net/http"
@@ -9,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/cardil/ghet/pkg/config"
+	"github.com/cardil/ghet/pkg/context"
 	"github.com/cardil/ghet/pkg/ghet/download"
 	"github.com/cardil/ghet/pkg/ghet/install"
 	pkggithub "github.com/cardil/ghet/pkg/github"
@@ -77,7 +77,7 @@ func TestCreatePlan(t *testing.T) {
 
 func performCreatePlanTest(t testingT, tc createPlanTestCase) {
 	githubapi.WithTestClient(t, func(client *github.Client, mux *http.ServeMux) {
-		ctx := githubapi.WithContext(context.TODO(), client)
+		ctx := githubapi.WithContext(context.TestContext(t), client)
 		tc.configureHTTP(t, mux)
 		defaultArgs := download.Args{
 			Args: install.Args{
@@ -121,6 +121,7 @@ func downloadURL(ver, asset string) string {
 type testingT interface {
 	TempDir() string
 	require.TestingT
+	context.TestingT
 }
 
 type createPlanTestCase struct {
