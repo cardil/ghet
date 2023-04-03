@@ -4,7 +4,7 @@ import "context"
 
 type printerKey struct{}
 
-func FromContext(ctx context.Context) Printer {
+func PrinterFrom(ctx context.Context) Printer {
 	p, ok := ctx.Value(printerKey{}).(Printer)
 	if !ok {
 		return defaultPrinter()

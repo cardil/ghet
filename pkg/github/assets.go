@@ -11,6 +11,9 @@ type FileName struct {
 }
 
 func (n FileName) ToString() string {
+	if n.Extension == "" {
+		return n.BaseName
+	}
 	joiner := "."
 	if strings.HasPrefix(n.Extension, ".") {
 		joiner = ""

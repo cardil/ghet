@@ -76,7 +76,7 @@ func createFileLogger(ctx context.Context) *zap.Logger {
 }
 
 func createDefaultLogger(ctx context.Context) *zap.Logger {
-	prtr := FromContext(ctx)
+	prtr := PrinterFrom(ctx)
 	errout := prtr.ErrOrStderr()
 	ec := zap.NewDevelopmentEncoderConfig()
 	ec.EncodeLevel = zapcore.CapitalColorLevelEncoder

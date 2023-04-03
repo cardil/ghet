@@ -29,6 +29,7 @@ linters:
     - ireturn
     - varnamelen
     - exhaustruct
+    - contextcheck
 
 issues:
   exclude-rules:
@@ -37,6 +38,9 @@ issues:
         - wrapcheck
 
 linters-settings:
+  wrapcheck:
+    ignorePackageGlobs:
+      - "github.com/cardil/ghet/*"
   gomoddirectives:
     # List of allowed `replace` directives. Default is empty.
     replace-allow-list: []
