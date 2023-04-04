@@ -136,9 +136,9 @@ func fetchRelease(
 
 func assetMatches(asset *github.ReleaseAsset, args Args) bool {
 	name := asset.GetName()
-	return (name == args.Checksums.ToString()) ||
+	return name == args.Checksums.ToString() ||
 		(strings.Contains(name, args.Asset.BaseName) &&
-			strings.Contains(name, string(args.Architecture)) &&
-			strings.Contains(name, string(args.OperatingSystem)))
+			args.Architecture.Matches(name) &&
+			args.OperatingSystem.Matches(name))
 
 }
