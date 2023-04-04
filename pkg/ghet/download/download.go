@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/1set/gut/yos"
+	githubapi "github.com/cardil/ghet/pkg/github/api"
 	"github.com/cardil/ghet/pkg/metadata"
 	"github.com/cardil/ghet/pkg/output"
 	"github.com/cardil/ghet/pkg/output/tui"
@@ -23,7 +24,7 @@ const (
 )
 
 type assetInfo struct {
-	Asset
+	githubapi.Asset
 	number      int
 	total       int
 	longestName int
@@ -86,11 +87,11 @@ func downloadAsset(ctx context.Context, asset assetInfo, args Args) error {
 	return copyFile(cachePath, asset.Asset, args)
 }
 
-func copyFile(cachePath string, asset Asset, args Args) error {
+func copyFile(cachePath string, asset githubapi.Asset, args Args) error {
 	if err := os.MkdirAll(args.Destination, executableMode); err != nil {
 		return errors.WithStack(err)
 	}
-	bin := path.Join(args.Destination, args.Asset.FileName.ToString())
+	bin := path.Join(args.Destination, asset.Name)
 	if err := yos.MoveFile(cachePath, bin); err != nil {
 		return errors.WithStack(err)
 	}

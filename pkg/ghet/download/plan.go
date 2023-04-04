@@ -18,15 +18,7 @@ import (
 var ErrNoAssetFound = errors.New("no matching asset found")
 
 type Plan struct {
-	Assets []Asset
-}
-
-type Asset struct {
-	ID          int64
-	Name        string
-	ContentType string
-	Size        int
-	URL         string
+	Assets []githubapi.Asset
 }
 
 func CreatePlan(ctx context.Context, args Args) (*Plan, error) {
@@ -58,24 +50,27 @@ func CreatePlan(ctx context.Context, args Args) (*Plan, error) {
 		"release":  rr,
 	}).Trace("Github API response")
 
-	assets := make([]Asset, 0, 1)
+	assets := make([]githubapi.Asset, 0, 1)
+	log.WithFields(slog.Fields{"assets": namesOf(rr.Assets)}).
+		Debug("Checking assets")
 	for _, asset := range rr.Assets {
 		if assetMatches(asset, args) {
-			log.WithFields(slog.Fields{"asset": asset}).
-				Trace("Asset matches")
-			assets = append(assets, Asset{
+			a := githubapi.Asset{
 				ID:          asset.GetID(),
 				Name:        asset.GetName(),
 				ContentType: asset.GetContentType(),
 				Size:        asset.GetSize(),
 				URL:         asset.GetBrowserDownloadURL(),
-			})
+			}
+			log.WithFields(slog.Fields{"asset": a}).Trace("Asset matches")
+			assets = append(assets, a)
 		}
 	}
+	assets = prioritizeArchives(assets)
 	if len(assets) == 0 {
 		return nil, errors.WithStack(ErrNoAssetFound)
 	}
-	log.WithFields(slog.Fields{"assets": len(assets)}).
+	log.WithFields(slog.Fields{"assets": assets}).
 		Debug("Plan created")
 	widgets.Printf(ctx, "🎉 Found %s matching assets", color.Cyan.Sprint(len(assets)))
 	return &Plan{Assets: assets}, nil
@@ -105,6 +100,22 @@ func (p Plan) Download(ctx context.Context, args Args) error {
 		}
 	}
 	return nil
+}
+
+func prioritizeArchives(assets []githubapi.Asset) []githubapi.Asset {
+	idx := githubapi.CreateIndex(assets)
+	if len(idx.Archives) > 0 {
+		return append(idx.Archives, idx.Checksums...)
+	}
+	return assets
+}
+
+func namesOf(assets []*github.ReleaseAsset) []string {
+	names := make([]string, 0, len(assets))
+	for _, asset := range assets {
+		names = append(names, asset.GetName())
+	}
+	return names
 }
 
 func fetchRelease(
@@ -137,8 +148,8 @@ func fetchRelease(
 func assetMatches(asset *github.ReleaseAsset, args Args) bool {
 	name := asset.GetName()
 	return name == args.Checksums.ToString() ||
-		(strings.Contains(name, args.Asset.BaseName) &&
-			args.Architecture.Matches(name) &&
-			args.OperatingSystem.Matches(name))
+		(strings.HasPrefix(name, args.Asset.BaseName) &&
+			args.Architecture.Matches(strings.TrimPrefix(name, args.Asset.BaseName)) &&
+			args.OperatingSystem.Matches(strings.TrimPrefix(name, args.Asset.BaseName)))
 
 }

@@ -10,7 +10,7 @@ type Matcher interface {
 	Matches(name string) bool
 }
 
-func Negate(matcher Matcher) Matcher {
+func Not(matcher Matcher) Matcher {
 	return MatcherFn(func(name string) bool {
 		return !matcher.Matches(name)
 	})

@@ -26,7 +26,7 @@ func TestCreatePlan(t *testing.T) {
 	testCases := []createPlanTestCase{{
 		name: "latest release of kn-event",
 		want: download.Plan{
-			Assets: []download.Asset{{
+			Assets: []githubapi.Asset{{
 				Name:        "checksums.txt",
 				URL:         downloadURL("1.9.1", "checksums.txt"),
 				ContentType: "text/plain",
@@ -49,7 +49,7 @@ func TestCreatePlan(t *testing.T) {
 			return args
 		},
 		want: download.Plan{
-			Assets: []download.Asset{{
+			Assets: []githubapi.Asset{{
 				Name:        "checksums.txt",
 				URL:         downloadURL("1.8.0", "checksums.txt"),
 				ContentType: "application/octet-stream",
@@ -58,7 +58,7 @@ func TestCreatePlan(t *testing.T) {
 				Name:        "kn-event-darwin-arm64",
 				URL:         downloadURL("1.8.0", "kn-event-darwin-arm64"),
 				ContentType: "application/octet-stream",
-				Size:        58542306,
+				Size:        58_542_306,
 			}},
 		},
 		responses: []response{
