@@ -22,7 +22,7 @@ func WidgetsFrom(ctx context.Context) *Widgets {
 	if w, ok := ctx.Value(widgetsKey{}).(*Widgets); ok {
 		return w
 	}
-	return nil
+	return defaultWidgets()
 }
 
 func defaultWidgets() *Widgets {

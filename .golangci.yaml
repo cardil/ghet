@@ -36,6 +36,7 @@ issues:
     - path: _test\.go
       linters:
         - wrapcheck
+        - funlen
 
 linters-settings:
   wrapcheck:

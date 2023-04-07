@@ -16,8 +16,16 @@ type TestingT interface {
 	zaptest.TestingT
 }
 
+func TODO() sysctx.Context {
+	return sysctx.TODO()
+}
+
 func TestContext(t TestingT) sysctx.Context {
-	return sysctx.WithValue(sysctx.TODO(), testingTKey{}, t)
+	return WithTestingT(sysctx.TODO(), t)
+}
+
+func WithTestingT(ctx sysctx.Context, t TestingT) sysctx.Context {
+	return sysctx.WithValue(ctx, testingTKey{}, t)
 }
 
 func TestingTFromContext(ctx sysctx.Context) TestingT {

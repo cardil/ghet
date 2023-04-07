@@ -146,10 +146,12 @@ func fetchRelease(
 }
 
 func assetMatches(asset *github.ReleaseAsset, args Args) bool {
-	name := asset.GetName()
-	return name == args.Checksums.ToString() ||
-		(strings.HasPrefix(name, args.Asset.BaseName) &&
-			args.Architecture.Matches(strings.TrimPrefix(name, args.Asset.BaseName)) &&
-			args.OperatingSystem.Matches(strings.TrimPrefix(name, args.Asset.BaseName)))
+	name := strings.ToLower(asset.GetName())
+	basename := strings.ToLower(args.Asset.BaseName)
+	coords := strings.TrimPrefix(name, basename)
+	return strings.Contains(name, args.Checksums.ToString()) ||
+		(strings.HasPrefix(name, basename) &&
+			args.Architecture.Matches(coords) &&
+			args.OperatingSystem.Matches(coords))
 
 }
