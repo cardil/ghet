@@ -29,6 +29,21 @@ func (os OperatingSystem) Matches(name string) bool {
 	return matchWith(name, osMatchers[os])
 }
 
+func noOsMatches(name string) bool {
+	oss := []OperatingSystem{
+		OSDarwin,
+		OSLinuxMusl,
+		OSLinuxGnu,
+		OSWindows,
+	}
+	for _, os := range oss {
+		if os.Matches(name) {
+			return false
+		}
+	}
+	return true
+}
+
 func CurrentOS() OperatingSystem {
 	family := OsFamily(runtime.GOOS)
 	//goland:noinspection GoBoolExpressions

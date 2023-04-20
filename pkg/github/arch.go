@@ -17,6 +17,23 @@ const (
 	ArchS390X   Architecture = "s390x"
 )
 
+func noArchMatches(name string) bool {
+	archs := []Architecture{
+		ArchX86,
+		ArchAMD64,
+		ArchARM,
+		ArchARM64,
+		ArchPPC64LE,
+		ArchS390X,
+	}
+	for _, arch := range archs {
+		if arch.Matches(name) {
+			return false
+		}
+	}
+	return true
+}
+
 func (a Architecture) Matches(name string) bool {
 	return matchWith(name, archMatchers[a])
 }

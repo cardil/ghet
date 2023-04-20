@@ -3,7 +3,6 @@ package download
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	pkggithub "github.com/cardil/ghet/pkg/github"
 	githubapi "github.com/cardil/ghet/pkg/github/api"
@@ -54,7 +53,7 @@ func CreatePlan(ctx context.Context, args Args) (*Plan, error) {
 	log.WithFields(slog.Fields{"assets": namesOf(rr.Assets)}).
 		Debug("Checking assets")
 	for _, asset := range rr.Assets {
-		if assetMatches(asset, args) {
+		if args.Asset.Matches(asset.GetName()) {
 			a := githubapi.Asset{
 				ID:          asset.GetID(),
 				Name:        asset.GetName(),
@@ -66,14 +65,15 @@ func CreatePlan(ctx context.Context, args Args) (*Plan, error) {
 			assets = append(assets, a)
 		}
 	}
-	assets = prioritizeArchives(assets)
+	index := githubapi.CreateIndex(assets)
+	assets = prioritizeArchives(index)
 	if len(assets) == 0 {
 		return nil, errors.WithStack(ErrNoAssetFound)
 	}
-	log.WithFields(slog.Fields{"assets": assets}).
-		Debug("Plan created")
+	plan := &Plan{Assets: assets}
+	log.WithFields(slog.Fields{"plan": plan}).Debug("Plan created")
 	widgets.Printf(ctx, "🎉 Found %s matching assets", color.Cyan.Sprint(len(assets)))
-	return &Plan{Assets: assets}, nil
+	return plan, nil
 }
 
 func (p Plan) Download(ctx context.Context, args Args) error {
@@ -82,6 +82,7 @@ func (p Plan) Download(ctx context.Context, args Args) error {
 		"repo":  args.Repo,
 	})
 	longestName := 0
+
 	for _, asset := range p.Assets {
 		nameLen := len(asset.Name)
 		if nameLen > longestName {
@@ -102,11 +103,16 @@ func (p Plan) Download(ctx context.Context, args Args) error {
 	return nil
 }
 
-func prioritizeArchives(assets []githubapi.Asset) []githubapi.Asset {
-	idx := githubapi.CreateIndex(assets)
-	if len(idx.Archives) > 0 {
-		return append(idx.Archives, idx.Checksums...)
+func prioritizeArchives(idx githubapi.IndexedAssets) []githubapi.Asset {
+	if len(idx.Archives) > 0 && len(idx.Other) > 0 {
+		assets := make([]githubapi.Asset, 0, len(idx.Archives)+len(idx.Checksums))
+		assets = append(assets, idx.Archives...)
+		return append(assets, idx.Checksums...)
 	}
+	assets := make([]githubapi.Asset, 0, len(idx.Archives)+len(idx.Other)+len(idx.Checksums))
+	assets = append(assets, idx.Other...)
+	assets = append(assets, idx.Archives...)
+	assets = append(assets, idx.Checksums...)
 	return assets
 }
 
@@ -143,15 +149,4 @@ func fetchRelease(
 		}
 	}
 	return rr, r, nil
-}
-
-func assetMatches(asset *github.ReleaseAsset, args Args) bool {
-	name := strings.ToLower(asset.GetName())
-	basename := strings.ToLower(args.Asset.BaseName)
-	coords := strings.TrimPrefix(name, basename)
-	return strings.Contains(name, args.Checksums.ToString()) ||
-		(strings.HasPrefix(name, basename) &&
-			args.Architecture.Matches(coords) &&
-			args.OperatingSystem.Matches(coords))
-
 }

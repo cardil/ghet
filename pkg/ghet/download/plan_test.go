@@ -40,14 +40,6 @@ func TestCreatePlan(t *testing.T) {
 			}, {
 				Name: "kn-event-darwin-arm64",
 				Size: 58_727_008,
-			}, {
-				Name:        "checksums.txt.pem",
-				Size:        1_348,
-				ContentType: "application/x-x509-ca-cert",
-			}, {
-				Name:        "checksums.txt.sig",
-				Size:        96,
-				ContentType: "application/pgp-signature",
 			}},
 		}},
 	}, {
@@ -59,14 +51,6 @@ func TestCreatePlan(t *testing.T) {
 			}, {
 				Name: "kn-event-darwin-arm64",
 				Size: 58_542_306,
-			}, {
-				Name:        "checksums.txt.pem",
-				Size:        1_348,
-				ContentType: "application/octet-stream",
-			}, {
-				Name:        "checksums.txt.sig",
-				Size:        96,
-				ContentType: "application/octet-stream",
 			}},
 		}},
 	}, {
@@ -239,9 +223,6 @@ func (tc resolvedCreatePlanTestCase) performTest(ctx context.Context, t testingT
 							Owner: tc.args.owner,
 							Repo:  tc.args.repo,
 						},
-					},
-					Checksums: github.Checksums{
-						FileName: github.FileName{BaseName: "checksums", Extension: "txt"},
 					},
 				},
 				Site: config.Site{Type: config.TypeGitHub},

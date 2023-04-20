@@ -20,19 +20,20 @@ func CreateIndex(assets []Asset) IndexedAssets {
 	index := IndexedAssets{}
 	for _, asset := range assets {
 		name := asset.Name
-		if isArchive.Matches(name) {
+		switch {
+		case isArchive().Matches(name):
 			index.Archives = append(index.Archives, asset)
-		} else if isChecksum.Matches(name) {
+		case isChecksum().Matches(name):
 			index.Checksums = append(index.Checksums, asset)
-		} else {
+		default:
 			index.Other = append(index.Other, asset)
 		}
 	}
 	return index
 }
 
-var (
-	isArchive = match.Any(
+func isArchive() match.Matcher {
+	return match.Any(
 		match.EndsWith(".tar.gz"),
 		match.EndsWith(".tgz"),
 		match.EndsWith(".tar.bz2"),
@@ -41,11 +42,13 @@ var (
 		match.EndsWith(".txz"),
 		match.EndsWith(".zip"),
 	)
+}
 
-	isChecksum = match.Any(
+func isChecksum() match.Matcher {
+	return match.Any(
 		match.EndsWith(".sha256"),
 		match.EndsWith(".sha512"),
 		match.EndsWith(".md5"),
 		match.Regex("checksums?\\.txt"),
 	)
-)
+}

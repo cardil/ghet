@@ -20,12 +20,6 @@ func (a Args) WithDefaults() Args {
 			Release: github.Release{
 				Tag: "latest",
 			},
-			Checksums: github.Checksums{
-				FileName: github.FileName{
-					BaseName:  "checksums",
-					Extension: "txt",
-				},
-			},
 		},
 		Site: config.Site{
 			Type:    config.TypeGitHub,
