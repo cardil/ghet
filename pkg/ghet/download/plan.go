@@ -72,7 +72,8 @@ func CreatePlan(ctx context.Context, args Args) (*Plan, error) {
 	}
 	plan := &Plan{Assets: assets}
 	log.WithFields(slog.Fields{"plan": plan}).Debug("Plan created")
-	widgets.Printf(ctx, "🎉 Found %s matching assets", color.Cyan.Sprint(len(assets)))
+	widgets.Printf(ctx, "🎉 Found %s matching assets for %s",
+		color.Cyan.Sprint(len(assets)), color.Cyan.Sprintf(rr.GetTagName()))
 	return plan, nil
 }
 
@@ -99,6 +100,9 @@ func (p Plan) Download(ctx context.Context, args Args) error {
 		if err := downloadAsset(ctx, ai, args); err != nil {
 			return err
 		}
+	}
+	if err := verifyChecksums(ctx, p.Assets, args); err != nil {
+		return err
 	}
 	return nil
 }

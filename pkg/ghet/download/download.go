@@ -43,7 +43,7 @@ func downloadAsset(ctx context.Context, asset assetInfo, args Args) error {
 	if fileExists(l, cachePath, asset.Size) {
 		l.WithFields(slog.Fields{"cachePath": cachePath}).
 			Debug("Asset already downloaded")
-		return copyFile(cachePath, asset.Asset, args)
+		return moveFile(cachePath, asset.Asset, args)
 	}
 
 	l.Debug("Downloading asset")
@@ -84,10 +84,10 @@ func downloadAsset(ctx context.Context, asset assetInfo, args Args) error {
 	}); perr != nil {
 		return perr
 	}
-	return copyFile(cachePath, asset.Asset, args)
+	return moveFile(cachePath, asset.Asset, args)
 }
 
-func copyFile(cachePath string, asset githubapi.Asset, args Args) error {
+func moveFile(cachePath string, asset githubapi.Asset, args Args) error {
 	if err := os.MkdirAll(args.Destination, executableMode); err != nil {
 		return errors.WithStack(err)
 	}
