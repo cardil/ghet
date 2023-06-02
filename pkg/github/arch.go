@@ -53,6 +53,7 @@ var archMatchers = map[Architecture]match.Matcher{ //nolint:gochecknoglobals
 	ArchAMD64: match.Any(
 		match.Substr("amd64"),
 		match.Substr("x86_64"),
+		match.Substr("x64"),
 	),
 	ArchARM: match.Any(
 		match.Substr("arm32"),

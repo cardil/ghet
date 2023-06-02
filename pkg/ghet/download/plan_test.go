@@ -31,6 +31,19 @@ var fs embed.FS
 func TestCreatePlan(t *testing.T) {
 	t.Parallel()
 	testCases := []createPlanTestCase{{
+		name: "pulumi/pulumi",
+		want: result{version: "v3.69.0", Plan: download.Plan{
+			Assets: []ghapi.Asset{{
+				Name:        "pulumi-3.69.0-checksums.txt",
+				ContentType: "raw",
+				Size:        594,
+			}, {
+				Name:        "pulumi-v3.69.0-darwin-arm64.tar.gz",
+				ContentType: "raw",
+				Size:        137_128_035,
+			}},
+		}},
+	}, {
 		name: "knative-sandbox/kn-plugin-event!!kn-event",
 		want: result{version: "knative-v1.9.1", Plan: download.Plan{
 			Assets: []ghapi.Asset{{
