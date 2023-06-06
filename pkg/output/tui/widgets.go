@@ -1,6 +1,14 @@
 package tui
 
-import "context"
+import (
+	"context"
+
+	"github.com/cardil/ghet/pkg/output"
+	"github.com/pkg/errors"
+)
+
+// ErrNotInteractive is returned when the user is not in an interactive session.
+var ErrNotInteractive = errors.New("not interactive session")
 
 type Widgets struct {
 	NewSpinner  NewSpinnerFunc
@@ -31,4 +39,18 @@ func defaultWidgets() *Widgets {
 		NewProgress: NewBubbleProgress,
 		Printf:      FmtPrintfFunc,
 	}
+}
+
+func (w *Widgets) Interactive(ctx context.Context) (*InteractiveWidgets, error) {
+	prt := output.PrinterFrom(ctx)
+	if !output.IsTerminal(prt.InOrStdin()) {
+		return nil, errors.WithStack(ErrNotInteractive)
+	}
+	return &InteractiveWidgets{
+		Ask: NewBubbleAsk,
+	}, nil
+}
+
+type InteractiveWidgets struct {
+	Ask AskFunc
 }

@@ -47,12 +47,32 @@ func verifyChecksums(ctx context.Context, assets []githubapi.Asset, args Args) e
 		widgets.Printf(ctx, "🕵 No checksums to verify")
 		return nil
 	}
-	if len(index.Checksums) > 1 {
-		l.Errorf("Number of checksums is %d. Expected just one.", len(index.Checksums))
-		return fmt.Errorf("%w: %d", ErrTooManyChecksums, len(index.Checksums))
-	}
 
 	ca := index.Checksums[0]
+
+	if len(index.Checksums) > 1 {
+		options := make([]string, len(index.Checksums))
+		for i, c := range index.Checksums {
+			options[i] = c.Name
+		}
+		intwidgets, err := widgets.Interactive(ctx)
+		if err != nil {
+			if errors.Is(err, tui.ErrNotInteractive) {
+				l.Errorf("Number of checksums is %d. Expected just one.", len(index.Checksums))
+				return fmt.Errorf("%w: %d", ErrTooManyChecksums, len(index.Checksums))
+			}
+			return fmt.Errorf("%w: %v", ErrUnexpected, err)
+		}
+		selected := intwidgets.Ask(ctx, options,
+			"⚠️ More than one checksum file found. Choose proper one")
+		for _, c := range index.Checksums {
+			if c.Name == selected {
+				ca = c
+				break
+			}
+		}
+	}
+
 	l = l.WithFields(slog.Fields{"checksum": ca.Name})
 	l.Debug("Verifying checksum")
 

@@ -1,7 +1,6 @@
 package output
 
 import (
-	"io"
 	"log"
 	"os"
 
@@ -12,7 +11,6 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"go.uber.org/zap/zaptest"
-	"golang.org/x/term"
 )
 
 type loggerKey struct{}
@@ -105,11 +103,6 @@ func createTestingLogger(t context.TestingT) *zap.Logger {
 		zap.AddCaller(),
 		zap.AddCallerSkip(sz.SkipUntilTrueCaller),
 	), zaptest.Level(lvl))
-}
-
-func isTerminal(w io.Writer) bool {
-	f, ok := w.(*os.File)
-	return ok && term.IsTerminal(int(f.Fd()))
 }
 
 func activeLogLevel(defaultLevel zapcore.Level) zapcore.Level {
