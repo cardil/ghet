@@ -104,6 +104,9 @@ func (p Plan) Download(ctx context.Context, args Args) error {
 	if err := verifyChecksums(ctx, p.Assets, args); err != nil {
 		return err
 	}
+	if err := extract(ctx, p.Assets, args); err != nil {
+		return err
+	}
 	return nil
 }
 
