@@ -10,6 +10,7 @@ import (
 type Args struct {
 	github.Asset
 	config.Site
+	MultipleBinaries bool
 }
 
 func (a Args) WithDefaults() Args {

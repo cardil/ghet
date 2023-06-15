@@ -41,16 +41,17 @@ func defaultWidgets() *Widgets {
 	}
 }
 
-func (w *Widgets) Interactive(ctx context.Context) (*InteractiveWidgets, error) {
+func Interactive[T any](ctx context.Context) (*InteractiveWidgets[T], error) {
 	prt := output.PrinterFrom(ctx)
 	if !output.IsTerminal(prt.InOrStdin()) {
 		return nil, errors.WithStack(ErrNotInteractive)
 	}
-	return &InteractiveWidgets{
-		Ask: NewBubbleAsk,
+
+	return &InteractiveWidgets[T]{
+		Choose: BubbleChooser[T],
 	}, nil
 }
 
-type InteractiveWidgets struct {
-	Ask AskFunc
+type InteractiveWidgets[T any] struct {
+	Choose Chooser[T]
 }

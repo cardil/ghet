@@ -202,7 +202,7 @@ func (b *BubbleProgress) start() {
 	go func() {
 		t := b.tea
 		_, _ = t.Run()
-		b.ended <- struct{}{}
+		close(b.ended)
 		if err := t.ReleaseTerminal(); err != nil {
 			panic(err)
 		}

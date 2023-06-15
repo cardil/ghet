@@ -1,6 +1,8 @@
 package api
 
-import "github.com/cardil/ghet/pkg/match"
+import (
+	"github.com/cardil/ghet/pkg/match"
+)
 
 type Asset struct {
 	ID          int64
@@ -10,10 +12,14 @@ type Asset struct {
 	URL         string
 }
 
+func (a Asset) String() string {
+	return a.Name
+}
+
 type IndexedAssets struct {
 	Archives  []Asset
 	Checksums []Asset
-	Other     []Asset
+	Binaries  []Asset
 }
 
 func CreateIndex(assets []Asset) IndexedAssets {
@@ -26,7 +32,7 @@ func CreateIndex(assets []Asset) IndexedAssets {
 		case isChecksum().Matches(name):
 			index.Checksums = append(index.Checksums, asset)
 		default:
-			index.Other = append(index.Other, asset)
+			index.Binaries = append(index.Binaries, asset)
 		}
 	}
 	return index
@@ -34,13 +40,18 @@ func CreateIndex(assets []Asset) IndexedAssets {
 
 func isArchive() match.Matcher {
 	return match.Any(
-		match.EndsWith(".tar.gz"),
+		match.EndsWith(".gz"),
 		match.EndsWith(".tgz"),
-		match.EndsWith(".tar.bz2"),
+		match.EndsWith(".bz2"),
 		match.EndsWith(".tbz2"),
-		match.EndsWith(".tar.xz"),
+		match.EndsWith(".xz"),
 		match.EndsWith(".txz"),
+		match.EndsWith(".lz"),
+		match.EndsWith(".tlz"),
+		match.EndsWith(".lz4"),
 		match.EndsWith(".zip"),
+		match.EndsWith(".7z"),
+		match.EndsWith(".rar"),
 	)
 }
 

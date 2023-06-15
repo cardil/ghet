@@ -1,10 +1,10 @@
 package download
 
 import (
-	"archive/zip"
 	"context"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"path"
 	"strings"
@@ -14,75 +14,177 @@ import (
 	"github.com/cardil/ghet/pkg/output/tui"
 	slog "github.com/go-eden/slf4go"
 	"github.com/gookit/color"
+	"github.com/mholt/archiver/v4"
 )
 
-func extract(ctx context.Context, assets []githubapi.Asset, args Args) error {
+func (p Plan) extractArchives(ctx context.Context, args Args) error {
 	widgets := tui.WidgetsFrom(ctx)
-	index := githubapi.CreateIndex(assets)
+	index := githubapi.CreateIndex(p.Assets)
 	for _, asset := range index.Archives {
 		widgets.Printf(ctx, "📦 Extracting archive: %s", color.Cyan.Sprintf(asset.Name))
-		ar := archiveAsset{asset}
-		ctx = output.EnsureLogger(ctx, slog.Fields{"asset": asset.Name, "type": ar.ty()})
-		if err := extractArchive(ctx, ar, args); err != nil {
+		ar := archiveAsset{Asset: asset, plan: &p}
+		ctx = output.EnsureLogger(ctx, slog.Fields{"asset": asset.Name})
+		if err := ar.extract(ctx, args); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func extractArchive(ctx context.Context, ar archiveAsset, args Args) error {
-	r, err := ar.open(ctx, args)
+type archiveAsset struct {
+	githubapi.Asset
+	plan *Plan
+}
+
+func (aa archiveAsset) open(ctx context.Context, args Args) (fs.FS, error) {
+	log := output.LoggerFrom(ctx)
+	fp := aa.plan.cachePath(ctx, aa.Asset)
+	log.WithFields(slog.Fields{"archive": fp}).Debug("Opening archive")
+
+	fsys, err := archiver.FileSystem(ctx, fp)
+	if err != nil {
+		return nil, unexpected(err)
+	}
+
+	return fsys, nil
+}
+
+func (aa archiveAsset) extract(ctx context.Context, args Args) error {
+	fsys, err := aa.open(ctx, args)
 	if err != nil {
 		return err
 	}
-	defer r.Close()
 
+	var binaries []compressedBinary
+	if binaries, err = findBinaries(ctx, args, fsys); err != nil {
+		return err
+	}
+
+	if binaries, err = chooseBinaries(ctx, args, binaries); err != nil {
+		return err
+	}
+
+	for _, binary := range binaries {
+		if err = extractBinary(ctx, args, fsys, binary); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
-type archiveAsset struct {
-	githubapi.Asset
-}
+func extractBinary(ctx context.Context, args Args, fsys fs.FS, binary compressedBinary) error {
+	var (
+		ff  fs.File
+		fi  fs.FileInfo
+		err error
+	)
+	widgets := tui.WidgetsFrom(ctx)
+	if fi, err = archiver.TopDirStat(fsys, binary.path); err != nil {
+		return unexpected(err)
+	}
+	if ff, err = archiver.TopDirOpen(fsys, binary.path); err != nil {
+		return unexpected(err)
+	}
+	defer ff.Close()
 
-type archiveType int
-
-const (
-	archiveTypeZip archiveType = iota
-	archiveTypeTar
-	archiveTypeTarGz
-	archiveTypeTarBz2
-	archiveTypeTarXz
-)
-
-func (a archiveAsset) ty() archiveType {
-	if strings.HasSuffix(a.Name, ".zip") {
-		return archiveTypeZip
+	label := fmt.Sprintf("🎯 %s", binary.Name())
+	progress := widgets.NewProgress(ctx, int(fi.Size()), tui.Message{
+		Text: label, Size: len(label),
+	})
+	binaryPath := path.Join(args.Destination, args.FileName.ToString())
+	if args.MultipleBinaries {
+		binaryPath = path.Join(args.Destination, binary.Name())
 	}
-	if strings.HasSuffix(a.Name, ".tar") {
-		return archiveTypeTar
-	}
-	if strings.HasSuffix(a.Name, ".tar.gz") || strings.HasSuffix(a.Name, ".tgz") {
-		return archiveTypeTarGz
-	}
-	if strings.HasSuffix(a.Name, ".tar.bz2") || strings.HasSuffix(a.Name, ".tbz2") || strings.HasSuffix(a.Name, ".tbz") {
-		return archiveTypeTarBz2
-	}
-	if strings.HasSuffix(a.Name, ".tar.xz") || strings.HasSuffix(a.Name, ".txz") {
-		return archiveTypeTarXz
-	}
-	return -1
-}
-
-func (a archiveAsset) open(ctx context.Context, args Args) (io.ReadCloser, error) {
-	log := output.LoggerFrom(ctx)
-	log.Debug("Opening archive")
-	fp := path.Join(args.Destination, a.Name)
-	f, err := os.Open(fp)
+	out, err := os.Create(binaryPath)
 	if err != nil {
-		return nil, fmt.Errorf("%w: %v", ErrUnexpected, err)
+		return unexpected(err)
+	}
+	if perr := progress.With(func(pc tui.ProgressControl) error {
+		_, err = io.Copy(out, io.TeeReader(ff, pc))
+		if err != nil {
+			err = unexpected(err)
+			pc.Error(err)
+			return err
+		}
+		return nil
+	}); perr != nil {
+		return perr
+	}
+	if err = out.Close(); err != nil {
+		return unexpected(err)
 	}
 
-	switch a.ty() {
-	case archiveTypeZip:
-		zip.OpenReader()
+	if err = os.Chmod(binaryPath, fi.Mode()); err != nil {
+		return unexpected(err)
 	}
+
+	return nil
+}
+
+type compressedBinary struct {
+	path string
+	fs.FileInfo
+}
+
+func (b compressedBinary) String() string {
+	return fmt.Sprintf("%s %s %s", b.path, b.Mode().Perm(), b.ModTime())
+}
+
+func findBinaries(ctx context.Context, args Args, fsys fs.FS) ([]compressedBinary, error) {
+	l := output.LoggerFrom(ctx)
+	binaries := make([]compressedBinary, 0, 1)
+	if err := fs.WalkDir(fsys, ".", func(p string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		l.WithFields(slog.Fields{"type": d.Type().Perm()}).
+			Debugf("Checking in-archive file: %s", p)
+		filename := d.Name()
+		var fi fs.FileInfo
+		if fi, err = d.Info(); err != nil {
+			return unexpected(err)
+		}
+		if !d.IsDir() && isExecutable(fi.Mode().Perm()) && strings.Contains(filename, args.FileName.BaseName) {
+			binaries = append(binaries, compressedBinary{p, fi})
+		}
+		return nil
+	}); err != nil {
+		return nil, unexpected(err)
+	}
+	l.WithFields(slog.Fields{"binaries": fmt.Sprintf("%q", binaries)}).
+		Debugf("Found %d binaries", len(binaries))
+	return binaries, nil
+}
+
+func chooseBinaries(ctx context.Context, args Args, binaries []compressedBinary) ([]compressedBinary, error) {
+	if args.MultipleBinaries {
+		return binaries, nil
+	}
+	var (
+		err    error
+		binary compressedBinary
+	)
+	if binary, err = chooseBinary(ctx, binaries); err != nil {
+		return nil, err
+	}
+	return []compressedBinary{binary}, nil
+}
+
+func chooseBinary(ctx context.Context, binaries []compressedBinary) (compressedBinary, error) {
+	l := output.LoggerFrom(ctx)
+	if len(binaries) != 1 {
+		l.Warnf("Can't choose binary automatically: %q", binaries)
+		if widgets, err := tui.Interactive[compressedBinary](ctx); err != nil {
+			return compressedBinary{}, fmt.Errorf("%w: can't choose binary: %q",
+				err, binaries)
+		} else {
+			return widgets.Choose(ctx, binaries, "Choose the binary"), nil
+		}
+	}
+	return binaries[0], nil
+}
+
+func isExecutable(mode os.FileMode) bool {
+	return mode&0o111 != 0
 }

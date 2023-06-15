@@ -11,11 +11,9 @@ import (
 
 	"github.com/1set/gut/yos"
 	githubapi "github.com/cardil/ghet/pkg/github/api"
-	"github.com/cardil/ghet/pkg/metadata"
 	"github.com/cardil/ghet/pkg/output"
 	"github.com/cardil/ghet/pkg/output/tui"
 	slog "github.com/go-eden/slf4go"
-	"github.com/kirsle/configdir"
 	"github.com/pkg/errors"
 )
 
@@ -30,24 +28,20 @@ type assetInfo struct {
 	longestName int
 }
 
-func downloadAsset(ctx context.Context, asset assetInfo, args Args) error {
+func (p Plan) downloadAsset(ctx context.Context, asset assetInfo) error {
 	l := output.LoggerFrom(ctx).WithFields(slog.Fields{
 		"asset": asset.Name,
 	})
-	cachePath := configdir.LocalCache(metadata.Name)
-	if err := configdir.MakePath(cachePath); err != nil {
-		return errors.WithStack(err)
-	}
-	cachePath = path.Join(cachePath, fmt.Sprintf("%d", asset.ID))
+	cachePath := p.cachePath(ctx, asset.Asset)
 
 	if fileExists(l, cachePath, asset.Size) {
 		l.WithFields(slog.Fields{"cachePath": cachePath}).
 			Debug("Asset already downloaded")
-		return moveFile(cachePath, asset.Asset, args)
+		return nil
 	}
 
 	l.Debug("Downloading asset")
-	cl := http.Client{}
+	cl := githubapi.FromContext(ctx).Client()
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, asset.URL, nil)
 	if err != nil {
 		return errors.WithStack(err)
@@ -84,7 +78,7 @@ func downloadAsset(ctx context.Context, asset assetInfo, args Args) error {
 	}); perr != nil {
 		return perr
 	}
-	return moveFile(cachePath, asset.Asset, args)
+	return nil
 }
 
 func moveFile(cachePath string, asset githubapi.Asset, args Args) error {

@@ -28,11 +28,12 @@ func installCmd(_ *Args) *cobra.Command {
 }
 
 type installArgs struct {
-	site      string
-	version   string
-	basename  string
-	checksums string
-	repo      string
+	site             string
+	version          string
+	basename         string
+	checksums        string
+	repo             string
+	multipleBinaries bool
 }
 
 func (ia *installArgs) defaults() installArgs {
@@ -56,6 +57,8 @@ func (ia *installArgs) setFlags(c *cobra.Command) {
 			"if not given a repo name will be used")
 	fl.StringVar(&ia.checksums, "checksums", defs.checksums,
 		"a checksums file name")
+	fl.BoolVar(&ia.multipleBinaries, "multiple-binaries", defs.multipleBinaries,
+		"if set, will download all binaries from the archive")
 	c.Args = cobra.ExactArgs(1)
 }
 
@@ -86,7 +89,8 @@ func (ia *installArgs) parse(ctx context.Context) install.Args {
 				FileName: ia.checksumsFilename(),
 			},
 		},
-		Site: cfg.Site(ia.site),
+		Site:             cfg.Site(ia.site),
+		MultipleBinaries: ia.multipleBinaries,
 	}
 	args = args.WithDefaults()
 	return args

@@ -8,9 +8,9 @@ import (
 	"github.com/erikgeiser/promptkit/selection"
 )
 
-type AskFunc func(ctx context.Context, options []string, format string, a ...any) string
+type Chooser[T any] func(ctx context.Context, options []T, format string, a ...any) T
 
-func NewBubbleAsk(ctx context.Context, options []string, format string, a ...any) string {
+func BubbleChooser[T any](ctx context.Context, options []T, format string, a ...any) T {
 	prt := output.PrinterFrom(ctx)
 	l := output.LoggerFrom(ctx)
 	sel := selection.New(fmt.Sprintf(format, a...), options)

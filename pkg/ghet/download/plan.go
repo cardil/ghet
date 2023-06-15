@@ -97,27 +97,31 @@ func (p Plan) Download(ctx context.Context, args Args) error {
 			total:       len(p.Assets),
 			longestName: longestName,
 		}
-		if err := downloadAsset(ctx, ai, args); err != nil {
+		if err := p.downloadAsset(ctx, ai); err != nil {
 			return err
 		}
 	}
-	if err := verifyChecksums(ctx, p.Assets, args); err != nil {
+	if err := p.verifyChecksums(ctx); err != nil {
 		return err
 	}
-	if err := extract(ctx, p.Assets, args); err != nil {
+	if err := p.extractArchives(ctx, args); err != nil {
 		return err
 	}
-	return nil
+	if err := p.moveBinaries(ctx, args); err != nil {
+		return err
+	}
+
+	return p.cleanCache(ctx)
 }
 
 func prioritizeArchives(idx githubapi.IndexedAssets) []githubapi.Asset {
-	if len(idx.Archives) > 0 && len(idx.Other) > 0 {
+	if len(idx.Archives) > 0 && len(idx.Binaries) > 0 {
 		assets := make([]githubapi.Asset, 0, len(idx.Archives)+len(idx.Checksums))
 		assets = append(assets, idx.Archives...)
 		return append(assets, idx.Checksums...)
 	}
-	assets := make([]githubapi.Asset, 0, len(idx.Archives)+len(idx.Other)+len(idx.Checksums))
-	assets = append(assets, idx.Other...)
+	assets := make([]githubapi.Asset, 0, len(idx.Archives)+len(idx.Binaries)+len(idx.Checksums))
+	assets = append(assets, idx.Binaries...)
 	assets = append(assets, idx.Archives...)
 	assets = append(assets, idx.Checksums...)
 	return assets

@@ -10,5 +10,8 @@ import (
 var ErrUnexpected = errors.New("unexpected error")
 
 func unexpected(err error) error {
+	if errors.Is(err, ErrUnexpected) {
+		return err
+	}
 	return errors.WithStack(fmt.Errorf("%w: %v", ErrUnexpected, err))
 }

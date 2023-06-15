@@ -5,15 +5,14 @@ import (
 	"os"
 	"path"
 
-	"github.com/cardil/ghet/pkg/metadata"
-	"github.com/kirsle/configdir"
+	configdir "github.com/cardil/ghet/pkg/config/dir"
 )
 
 type logFileKey struct{}
 
 func EnsureLogFile(ctx context.Context) context.Context {
 	if f := LogFileFrom(ctx); f == nil {
-		f = createLogFile()
+		f = createLogFile(ctx)
 		return WithLogFile(ctx, f)
 	}
 	return ctx
@@ -30,12 +29,8 @@ func WithLogFile(ctx context.Context, f *os.File) context.Context {
 	return context.WithValue(ctx, logFileKey{}, f)
 }
 
-func createLogFile() *os.File {
-	cachePath := configdir.LocalCache(metadata.Name)
-	// Ensure it exists.
-	if err := configdir.MakePath(cachePath); err != nil {
-		panic(err)
-	}
+func createLogFile(ctx context.Context) *os.File {
+	cachePath := configdir.Cache(ctx)
 	logPath := path.Join(cachePath, "last-exec.log.jsonl")
 	if logFile, err := os.Create(logPath); err != nil {
 		panic(err)
