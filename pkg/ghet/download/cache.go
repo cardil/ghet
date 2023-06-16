@@ -13,11 +13,9 @@ import (
 	log "github.com/go-eden/slf4go"
 )
 
-const executablePerm = 0o750
-
 func (p Plan) cachePath(ctx context.Context, asset githubapi.Asset) string {
 	dir := path.Join(configdir.Cache(ctx), p.transationID())
-	if err := os.MkdirAll(dir, executablePerm); err != nil {
+	if err := os.MkdirAll(dir, executableMode); err != nil {
 		log.Fatal(unexpected(err))
 	}
 	return path.Join(dir, asset.Name)

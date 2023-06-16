@@ -27,6 +27,9 @@ import (
 // ErrTooManyChecksums is returned when there are more than one checksums.
 var ErrTooManyChecksums = errors.New("too many checksums")
 
+// ErrNoChecksum is returned when there are no checksums.
+var ErrNoChecksum = errors.New("no checksum")
+
 // ErrUnknownChecksumAlgorithm is returned when the checksum algorithm is unknown.
 var ErrUnknownChecksumAlgorithm = errors.New("unknown checksum algorithm")
 
@@ -39,13 +42,35 @@ var ErrNotVerifiedAssets = errors.New("not verified assets")
 var bsdStyleChecksums = regexp.MustCompile(`^(SHA[0-9]{1,3})\s+\(([^)]+)\)\s+=\s+([a-fA-F0-9]{32,128})$`)
 
 func (p Plan) verifyChecksums(ctx context.Context) error {
-	l := output.LoggerFrom(ctx)
 	widgets := tui.WidgetsFrom(ctx)
+	if cs, err := p.newChecksumVerifier(ctx); err != nil {
+		if errors.Is(err, ErrNoChecksum) {
+			widgets.Printf(ctx, "⚠️ No checksums found. Skipping verification")
+			return nil
+		}
+		return err
+	} else {
+		index := githubapi.CreateIndex(p.Assets)
+		artifacts := append(index.Archives, index.Binaries...)
+		err = cs.verify(ctx, artifacts, func(curr githubapi.Asset) string {
+			return path.Dir(p.cachePath(ctx, curr))
+		})
+		if err != nil {
+			return err
+		}
+	}
+
+	widgets.Printf(ctx, "✅ All checksums match the downloaded assets")
+
+	return nil
+}
+
+func (p Plan) newChecksumVerifier(ctx context.Context) (*checksumVerifier, error) {
+	l := output.LoggerFrom(ctx)
 	index := githubapi.CreateIndex(p.Assets)
 	if len(index.Checksums) == 0 {
 		l.Debug("No checksums to verify")
-		widgets.Printf(ctx, "🕵 No checksums to verify")
-		return nil
+		return nil, ErrNoChecksum
 	}
 
 	ca := index.Checksums[0]
@@ -55,9 +80,9 @@ func (p Plan) verifyChecksums(ctx context.Context) error {
 		if err != nil {
 			if errors.Is(err, tui.ErrNotInteractive) {
 				l.Errorf("Number of checksums is %d. Expected just one.", len(index.Checksums))
-				return fmt.Errorf("%w: %d", ErrTooManyChecksums, len(index.Checksums))
+				return nil, fmt.Errorf("%w: %d", ErrTooManyChecksums, len(index.Checksums))
 			}
-			return fmt.Errorf("%w: %v", ErrUnexpected, err)
+			return nil, unexpected(err)
 		}
 		selected := iwidgets.Choose(ctx, index.Checksums,
 			"⚠️ More than one checksum file found. Choose proper one")
@@ -71,35 +96,27 @@ func (p Plan) verifyChecksums(ctx context.Context) error {
 	artifacts := append(index.Archives, index.Binaries...)
 	if len(artifacts) == 0 {
 		l.Errorf("No assets to verify")
-		return fmt.Errorf("%w: %d", ErrNotVerifiedAssets, len(index.Binaries))
+		return nil, fmt.Errorf("%w: %d", ErrNotVerifiedAssets, len(index.Binaries))
 	}
-	defaultArtifact := artifacts[0]
 
 	l = l.WithFields(slog.Fields{"checksum": ca.Name})
 	l.Debug("Verifying checksum")
 
-	csp := checksumParser{Asset: ca, plan: &p}
-	if cs, err := csp.parse(ctx, defaultArtifact); err != nil {
-		return err
-	} else {
-		err = cs.verify(ctx, artifacts)
-		if err != nil {
-			return err
-		}
+	parser := checksumParser{Asset: ca, plan: &p}
+	verifier, err := parser.parse(ctx)
+	if err != nil {
+		return nil, err
 	}
-
-	widgets.Printf(ctx, "✅ All checksums match the downloaded assets")
-
-	return nil
+	return verifier, nil
 }
 
 type checksumParser struct {
 	githubapi.Asset
 	plan *Plan
-	*checksums
+	*checksumVerifier
 }
 
-func (p *checksumParser) parse(ctx context.Context, defaultArtifact githubapi.Asset) (*checksums, error) {
+func (p *checksumParser) parse(ctx context.Context) (*checksumVerifier, error) {
 	l := output.LoggerFrom(ctx)
 	fp := p.plan.cachePath(ctx, p.Asset)
 	l.Debugf("Parsing checksum: %s", fp)
@@ -113,12 +130,11 @@ func (p *checksumParser) parse(ctx context.Context, defaultArtifact githubapi.As
 	defer file.Close()
 
 	scanner := bufio.NewScanner(file)
-	p.checksums = &checksums{
+	p.checksumVerifier = &checksumVerifier{
 		entries: make([]checksumEntry, 0, 1),
-		plan:    p.plan,
 	}
 	for scanner.Scan() {
-		if err := p.parseLine(ctx, scanner.Text(), defaultArtifact); err != nil {
+		if err := p.parseLine(ctx, scanner.Text()); err != nil {
 			return nil, err
 		}
 	}
@@ -127,32 +143,25 @@ func (p *checksumParser) parse(ctx context.Context, defaultArtifact githubapi.As
 		return nil, unexpected(err)
 	}
 
-	return p.checksums, nil
+	return p.checksumVerifier, nil
 }
 
-func (p *checksumParser) parseLine(
-	ctx context.Context,
-	line string,
-	defaultArtifact githubapi.Asset,
-) error {
+func (p *checksumParser) parseLine(ctx context.Context, line string) error {
 	var entry checksumEntry
 	if bsdStyleChecksums.MatchString(line) {
 		entry = p.parseBSDStyleChecksum(ctx, line)
 	} else {
-		if e, err := p.parseRegularChecksum(line, defaultArtifact); err != nil {
+		if e, err := p.parseRegularChecksum(line); err != nil {
 			return err
 		} else {
 			entry = e
 		}
 	}
-	p.checksums.entries = append(p.checksums.entries, entry)
+	p.checksumVerifier.entries = append(p.checksumVerifier.entries, entry)
 	return nil
 }
 
-func (p *checksumParser) parseRegularChecksum(
-	line string,
-	artifact githubapi.Asset,
-) (checksumEntry, error) {
+func (p *checksumParser) parseRegularChecksum(line string) (checksumEntry, error) {
 	fields := strings.Fields(line)
 	if len(fields) > 2 || len(fields) < 1 {
 		return checksumEntry{}, unexpected(fmt.Errorf("invalid checksum line: %s", line))
@@ -160,7 +169,7 @@ func (p *checksumParser) parseRegularChecksum(
 
 	entry := checksumEntry{
 		hash:     fields[0],
-		filename: artifact.Name,
+		filename: "-",
 	}
 	if len(fields) == 2 {
 		entry.filename = fields[1]
@@ -239,7 +248,7 @@ type checksumEntry struct {
 	filename string
 }
 
-func (e checksumEntry) verify(_ context.Context, asset githubapi.Asset, dest string) error {
+func (e checksumEntry) verify(asset githubapi.Asset, dest string) error {
 	dig := e.newDigest()
 	fp := path.Join(dest, asset.Name)
 	var reader io.Reader
@@ -260,21 +269,27 @@ func (e checksumEntry) verify(_ context.Context, asset githubapi.Asset, dest str
 	return nil
 }
 
-type checksums struct {
-	entries []checksumEntry
-	plan    *Plan
+func (e checksumEntry) Matches(name string) bool {
+	return e.filename == "-" || e.filename == name
 }
 
-func (c checksums) verify(ctx context.Context, assets []githubapi.Asset) error {
+type checksumVerifier struct {
+	entries []checksumEntry
+}
+
+func (c checksumVerifier) verify(
+	ctx context.Context, assets []githubapi.Asset,
+	dirFn func(curr githubapi.Asset) string,
+) error {
 	widgets := tui.WidgetsFrom(ctx)
 	for _, entry := range c.entries {
 		for i, curr := range assets {
-			if entry.filename == curr.Name {
+			if entry.Matches(curr.Name) {
 				spin := widgets.NewSpinner(ctx, fmt.Sprintf("🔍 Verifying checksum for %s",
 					color.Cyan.Sprintf(curr.Name)))
 				if err := spin.With(func(_ tui.Spinner) error {
-					dest := path.Dir(c.plan.cachePath(ctx, curr))
-					if err := entry.verify(ctx, curr, dest); err != nil {
+					dest := dirFn(curr)
+					if err := entry.verify(curr, dest); err != nil {
 						return err
 					}
 					return nil

@@ -28,7 +28,7 @@ func (p Plan) moveBinaries(ctx context.Context, args Args) error {
 		}
 
 		if strings.Contains(binary.ContentType, "octet-stream") {
-			if err := os.Chmod(target, executablePerm); err != nil {
+			if err := os.Chmod(target, executableMode); err != nil {
 				return unexpected(err)
 			}
 		}

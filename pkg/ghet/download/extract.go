@@ -3,6 +3,7 @@ package download
 import (
 	"context"
 	"fmt"
+	"hash"
 	"io"
 	"io/fs"
 	"os"
@@ -13,6 +14,7 @@ import (
 	"github.com/cardil/ghet/pkg/output"
 	"github.com/cardil/ghet/pkg/output/tui"
 	slog "github.com/go-eden/slf4go"
+	"github.com/gobuffalo/packr/v2/file/resolver/encoding/hex"
 	"github.com/gookit/color"
 	"github.com/mholt/archiver/v4"
 )
@@ -64,8 +66,15 @@ func (aa archiveAsset) extract(ctx context.Context, args Args) error {
 		return err
 	}
 
+	var cv *checksumVerifier
+	if args.VerifyInArchive {
+		if cv, err = aa.plan.newChecksumVerifier(ctx); err != nil {
+			return err
+		}
+	}
+
 	for _, binary := range binaries {
-		if err = extractBinary(ctx, args, fsys, binary); err != nil {
+		if err = extractBinary(ctx, args, fsys, binary, cv); err != nil {
 			return err
 		}
 	}
@@ -73,7 +82,11 @@ func (aa archiveAsset) extract(ctx context.Context, args Args) error {
 	return nil
 }
 
-func extractBinary(ctx context.Context, args Args, fsys fs.FS, binary compressedBinary) error {
+func extractBinary(
+	ctx context.Context, args Args,
+	fsys fs.FS, binary compressedBinary,
+	cv *checksumVerifier,
+) error {
 	var (
 		ff  fs.File
 		fi  fs.FileInfo
@@ -100,8 +113,21 @@ func extractBinary(ctx context.Context, args Args, fsys fs.FS, binary compressed
 	if err != nil {
 		return unexpected(err)
 	}
+	var writer io.Writer = out
+	var dig hash.Hash
+	var expectedHash string
+	if args.VerifyInArchive && cv != nil {
+		for _, entry := range cv.entries {
+			if entry.Matches(binary.path) {
+				dig = entry.newDigest()
+				writer = io.MultiWriter(out, dig)
+				expectedHash = entry.hash
+				break
+			}
+		}
+	}
 	if perr := progress.With(func(pc tui.ProgressControl) error {
-		_, err = io.Copy(out, io.TeeReader(ff, pc))
+		_, err = io.Copy(writer, io.TeeReader(ff, pc))
 		if err != nil {
 			err = unexpected(err)
 			pc.Error(err)
@@ -113,6 +139,15 @@ func extractBinary(ctx context.Context, args Args, fsys fs.FS, binary compressed
 	}
 	if err = out.Close(); err != nil {
 		return unexpected(err)
+	}
+
+	if dig != nil {
+		actualHash := hex.EncodeToString(dig.Sum(nil))
+		if expectedHash != actualHash {
+			return fmt.Errorf("%w: %s != %s", ErrChecksumMismatch,
+				expectedHash, actualHash)
+		}
+		widgets.Printf(ctx, "✅ Checksum match the extracted binary")
 	}
 
 	if err = os.Chmod(binaryPath, fi.Mode()); err != nil {

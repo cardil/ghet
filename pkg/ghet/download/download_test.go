@@ -32,6 +32,7 @@ func TestDownload(t *testing.T) {
 				"minikube-linux-amd64.tar.gz",
 				"minikube-linux-amd64.sha256",
 			},
+			verifyInArchive: true,
 		},
 		want: []downloaded{{
 			name: "minikube",
@@ -186,15 +187,17 @@ func (tc downloadTestCase) buildArgs(wd string) download.Args {
 				OperatingSystem: pkggithub.OSLinuxGnu,
 			},
 			MultipleBinaries: tc.args.multipleBins,
+			VerifyInArchive:  tc.args.verifyInArchive,
 		},
 		Destination: wd,
 	}
 }
 
 type downloadArgs struct {
-	name         string
-	assets       []string
-	multipleBins bool
+	name            string
+	assets          []string
+	multipleBins    bool
+	verifyInArchive bool
 }
 
 type downloaded struct {

@@ -34,6 +34,7 @@ type installArgs struct {
 	checksums        string
 	repo             string
 	multipleBinaries bool
+	verifyInArchive  bool
 }
 
 func (ia *installArgs) defaults() installArgs {
@@ -58,7 +59,9 @@ func (ia *installArgs) setFlags(c *cobra.Command) {
 	fl.StringVar(&ia.checksums, "checksums", defs.checksums,
 		"a checksums file name")
 	fl.BoolVar(&ia.multipleBinaries, "multiple-binaries", defs.multipleBinaries,
-		"if set, will download all binaries from the archive")
+		"if set, will extract all binaries from the archive")
+	fl.BoolVar(&ia.verifyInArchive, "verify-in-archive", defs.verifyInArchive,
+		"if set, will verify the checksums against the binaries in the archive")
 	c.Args = cobra.ExactArgs(1)
 }
 
@@ -91,6 +94,7 @@ func (ia *installArgs) parse(ctx context.Context) install.Args {
 		},
 		Site:             cfg.Site(ia.site),
 		MultipleBinaries: ia.multipleBinaries,
+		VerifyInArchive:  ia.verifyInArchive,
 	}
 	args = args.WithDefaults()
 	return args

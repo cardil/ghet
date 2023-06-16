@@ -3,6 +3,7 @@ package download
 import (
 	"context"
 	"fmt"
+	"os"
 
 	pkggithub "github.com/cardil/ghet/pkg/github"
 	githubapi "github.com/cardil/ghet/pkg/github/api"
@@ -101,8 +102,13 @@ func (p Plan) Download(ctx context.Context, args Args) error {
 			return err
 		}
 	}
-	if err := p.verifyChecksums(ctx); err != nil {
-		return err
+	if !args.VerifyInArchive {
+		if err := p.verifyChecksums(ctx); err != nil {
+			return err
+		}
+	}
+	if err := os.MkdirAll(args.Destination, executableMode); err != nil {
+		return unexpected(err)
 	}
 	if err := p.extractArchives(ctx, args); err != nil {
 		return err

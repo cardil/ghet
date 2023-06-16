@@ -11,6 +11,7 @@ type Args struct {
 	github.Asset
 	config.Site
 	MultipleBinaries bool
+	VerifyInArchive  bool
 }
 
 func (a Args) WithDefaults() Args {
