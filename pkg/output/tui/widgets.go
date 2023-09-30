@@ -3,8 +3,8 @@ package tui
 import (
 	"context"
 
+	"emperror.dev/errors"
 	"github.com/cardil/ghet/pkg/output"
-	"github.com/pkg/errors"
 )
 
 // ErrNotInteractive is returned when the user is not in an interactive session.

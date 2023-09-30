@@ -5,9 +5,9 @@ import (
 	"log"
 	"os"
 
+	"emperror.dev/errors"
 	"github.com/cardil/ghet/pkg/metadata"
 	"github.com/kirsle/configdir"
-	"github.com/pkg/errors"
 )
 
 const (

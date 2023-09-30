@@ -35,3 +35,11 @@ func (a *Auth) EffectiveToken() string {
 	}
 	return a.Token
 }
+
+func (a *Auth) copy() *Auth {
+	i := Auth{}
+	if a.Token != "" {
+		i.Token = a.Token
+	}
+	return &i
+}

@@ -53,11 +53,3 @@ func (s Site) Merge(override Site) Site {
 type pair struct {
 	original, replacement Site
 }
-
-func (a Auth) copy() *Auth {
-	i := Auth{}
-	if a.Token != "" {
-		i.Token = a.Token
-	}
-	return &i
-}

@@ -3,7 +3,7 @@ package download
 import (
 	"fmt"
 
-	"github.com/pkg/errors"
+	"emperror.dev/errors"
 )
 
 // ErrUnexpected is returned when an unexpected error occurs.
@@ -13,5 +13,7 @@ func unexpected(err error) error {
 	if errors.Is(err, ErrUnexpected) {
 		return err
 	}
-	return errors.WithStack(fmt.Errorf("%w: %v", ErrUnexpected, err))
+	return errors.WithStack(
+		errors.Wrap(ErrUnexpected, fmt.Sprintf("%+v", err)),
+	)
 }

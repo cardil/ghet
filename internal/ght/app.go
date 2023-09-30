@@ -4,10 +4,10 @@ import (
 	"context"
 	"os"
 
+	"emperror.dev/errors"
 	"github.com/cardil/ghet/pkg/config"
 	"github.com/cardil/ghet/pkg/metadata"
 	"github.com/cardil/ghet/pkg/output"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/wavesoftware/go-commandline"
 )

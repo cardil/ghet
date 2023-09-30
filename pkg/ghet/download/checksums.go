@@ -3,7 +3,7 @@ package download
 import (
 	"bufio"
 	"context"
-	"crypto/sha1"
+	"crypto/sha1" //nolint:gosec
 	"crypto/sha256"
 	"crypto/sha512"
 	"encoding/hex"
@@ -16,15 +16,15 @@ import (
 	"strconv"
 	"strings"
 
+	"emperror.dev/errors"
 	githubapi "github.com/cardil/ghet/pkg/github/api"
 	"github.com/cardil/ghet/pkg/output"
 	"github.com/cardil/ghet/pkg/output/tui"
 	slog "github.com/go-eden/slf4go"
 	"github.com/gookit/color"
-	"github.com/pkg/errors"
 )
 
-// ErrTooManyChecksums is returned when there are more than one checksums.
+// ErrTooManyChecksums is returned when there are more than one checksum.
 var ErrTooManyChecksums = errors.New("too many checksums")
 
 // ErrNoChecksum is returned when there are no checksums.
@@ -39,25 +39,30 @@ var ErrChecksumMismatch = errors.New("checksum mismatch")
 // ErrNotVerifiedAssets is returned when there are no verified assets.
 var ErrNotVerifiedAssets = errors.New("not verified assets")
 
+// ErrInvalidChecksumLine is returned when the checksum line is invalid.
+var ErrInvalidChecksumLine = errors.New("invalid checksum line")
+
 var bsdStyleChecksums = regexp.MustCompile(`^(SHA[0-9]{1,3})\s+\(([^)]+)\)\s+=\s+([a-fA-F0-9]{32,128})$`)
 
 func (p Plan) verifyChecksums(ctx context.Context) error {
 	widgets := tui.WidgetsFrom(ctx)
-	if cs, err := p.newChecksumVerifier(ctx); err != nil {
+	cs, err := p.newChecksumVerifier(ctx)
+	if err != nil {
 		if errors.Is(err, ErrNoChecksum) {
 			widgets.Printf(ctx, "⚠️ No checksums found. Skipping verification")
 			return nil
 		}
 		return err
-	} else {
-		index := githubapi.CreateIndex(p.Assets)
-		artifacts := append(index.Archives, index.Binaries...)
-		err = cs.verify(ctx, artifacts, func(curr githubapi.Asset) string {
-			return path.Dir(p.cachePath(ctx, curr))
-		})
-		if err != nil {
-			return err
-		}
+	}
+
+	index := githubapi.CreateIndex(p.Assets)
+	artifacts := make([]githubapi.Asset, 0, len(index.Archives)+len(index.Binaries))
+	artifacts = append(append(artifacts, index.Archives...), index.Binaries...)
+	err = cs.verify(ctx, artifacts, func(curr githubapi.Asset) string {
+		return path.Dir(p.cachePath(ctx, curr))
+	})
+	if err != nil {
+		return err
 	}
 
 	widgets.Printf(ctx, "✅ All checksums match the downloaded assets")
@@ -93,7 +98,8 @@ func (p Plan) newChecksumVerifier(ctx context.Context) (*checksumVerifier, error
 			}
 		}
 	}
-	artifacts := append(index.Archives, index.Binaries...)
+	artifacts := make([]githubapi.Asset, 0, len(index.Archives)+len(index.Binaries))
+	artifacts = append(append(artifacts, index.Archives...), index.Binaries...)
 	if len(artifacts) == 0 {
 		l.Errorf("No assets to verify")
 		return nil, fmt.Errorf("%w: %d", ErrNotVerifiedAssets, len(index.Binaries))
@@ -151,32 +157,39 @@ func (p *checksumParser) parseLine(ctx context.Context, line string) error {
 	if bsdStyleChecksums.MatchString(line) {
 		entry = p.parseBSDStyleChecksum(ctx, line)
 	} else {
-		if e, err := p.parseRegularChecksum(line); err != nil {
+		e, err := p.parseRegularChecksum(line)
+		if err != nil {
 			return err
-		} else {
-			entry = e
 		}
+		entry = e
 	}
 	p.checksumVerifier.entries = append(p.checksumVerifier.entries, entry)
 	return nil
 }
 
+const (
+	minChecksumFields = 1
+	maxChecksumFields = 2
+)
+
 func (p *checksumParser) parseRegularChecksum(line string) (checksumEntry, error) {
 	fields := strings.Fields(line)
-	if len(fields) > 2 || len(fields) < 1 {
-		return checksumEntry{}, unexpected(fmt.Errorf("invalid checksum line: %s", line))
+	if len(fields) > maxChecksumFields || len(fields) < minChecksumFields {
+		return checksumEntry{}, unexpected(fmt.Errorf("%w: %s", ErrInvalidChecksumLine, line))
 	}
 
 	entry := checksumEntry{
 		hash:     fields[0],
 		filename: "-",
 	}
-	if len(fields) == 2 {
+	if len(fields) == maxChecksumFields {
 		entry.filename = fields[1]
 	}
-	if algo, err := checksumAlgorithmForHash(entry.hash); err != nil {
-		return checksumEntry{}, err
-	} else {
+	{
+		algo, err := checksumAlgorithmForHash(entry.hash)
+		if err != nil {
+			return checksumEntry{}, err
+		}
 		entry.checksumAlgorithm = algo
 	}
 	return entry, nil
@@ -201,22 +214,27 @@ const (
 	checksumAlgorithmSHA512 checksumAlgorithm = "SHA512"
 )
 
+const (
+	bitsPerByte  = 8
+	sha1LenBytes = 160 / bitsPerByte
+)
+
 func (a checksumAlgorithm) bytesLen() int {
 	if a == checksumAlgorithmSHA1 {
-		return 20
+		return sha1LenBytes
 	}
 
 	i, err := strconv.Atoi(strings.TrimPrefix(string(a), "SHA"))
 	if err != nil {
 		panic(err)
 	}
-	return i / 8
+	return i / bitsPerByte
 }
 
 func (a checksumAlgorithm) newDigest() hash.Hash {
 	switch a {
 	case checksumAlgorithmSHA1:
-		return sha1.New()
+		return sha1.New() //nolint:gosec
 	case checksumAlgorithmSHA224:
 		return sha256.New224()
 	case checksumAlgorithmSHA256:
@@ -252,13 +270,13 @@ func (e checksumEntry) verify(asset githubapi.Asset, dest string) error {
 	dig := e.newDigest()
 	fp := path.Join(dest, asset.Name)
 	var reader io.Reader
-	if f, err := os.Open(fp); err != nil {
+	f, err := os.Open(fp)
+	if err != nil {
 		return unexpected(err)
-	} else {
-		defer f.Close()
-		reader = bufio.NewReader(f)
 	}
-	if _, err := io.Copy(dig, reader); err != nil {
+	defer f.Close()
+	reader = bufio.NewReader(f)
+	if _, err = io.Copy(dig, reader); err != nil {
 		return unexpected(err)
 	}
 	actual := hex.EncodeToString(dig.Sum(nil))
@@ -289,10 +307,7 @@ func (c checksumVerifier) verify(
 					color.Cyan.Sprintf(curr.Name)))
 				if err := spin.With(func(_ tui.Spinner) error {
 					dest := dirFn(curr)
-					if err := entry.verify(curr, dest); err != nil {
-						return err
-					}
-					return nil
+					return entry.verify(curr, dest)
 				}); err != nil {
 					return err
 				}

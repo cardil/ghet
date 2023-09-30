@@ -12,8 +12,6 @@ import (
 
 const spinnerColor = lipgloss.Color("205")
 
-var spinnerStyle = lipgloss.NewStyle().Foreground(spinnerColor)
-
 type NewSpinnerFunc func(ctx context.Context, message string) Spinner
 
 type Spinner interface {
@@ -60,7 +58,7 @@ func (b *BubbleSpinner) View() string {
 func (b *BubbleSpinner) start() {
 	b.spin = spinner.New(
 		spinner.WithSpinner(spinner.Meter),
-		spinner.WithStyle(spinnerStyle),
+		spinner.WithStyle(spinnerStyle()),
 	)
 	b.tea = tea.NewProgram(b,
 		tea.WithInput(b.InOrStdin()),
@@ -79,7 +77,11 @@ func (b *BubbleSpinner) stop() {
 	}
 	b.tea.Quit()
 	b.tea = nil
-	b.spin = spinner.Model{}
-	endMsg := fmt.Sprintf("%s %s\n", b.Message, spinnerStyle.Render("Done"))
+	endMsg := fmt.Sprintf("%s %s\n",
+		b.Message, spinnerStyle().Render("Done"))
 	_, _ = b.OutOrStdout().Write([]byte(endMsg))
+}
+
+func spinnerStyle() lipgloss.Style {
+	return lipgloss.NewStyle().Foreground(spinnerColor)
 }

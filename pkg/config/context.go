@@ -2,10 +2,10 @@ package config
 
 import "context"
 
-var configKey = struct{}{}
+type configKey struct{}
 
 func FromContext(ctx context.Context) Config {
-	p, ok := ctx.Value(configKey).(Config)
+	p, ok := ctx.Value(configKey{}).(Config)
 	if !ok {
 		return Config{}
 	}
@@ -13,5 +13,5 @@ func FromContext(ctx context.Context) Config {
 }
 
 func WithContext(ctx context.Context, c Config) context.Context {
-	return context.WithValue(ctx, configKey, c)
+	return context.WithValue(ctx, configKey{}, c)
 }

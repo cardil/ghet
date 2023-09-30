@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"emperror.dev/errors"
 	pkggithub "github.com/cardil/ghet/pkg/github"
 	githubapi "github.com/cardil/ghet/pkg/github/api"
 	"github.com/cardil/ghet/pkg/output"
@@ -12,7 +13,6 @@ import (
 	slog "github.com/go-eden/slf4go"
 	"github.com/google/go-github/v48/github"
 	"github.com/gookit/color"
-	"github.com/pkg/errors"
 )
 
 var ErrNoAssetFound = errors.New("no matching asset found")

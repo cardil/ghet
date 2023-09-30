@@ -1,5 +1,6 @@
 run:
   timeout: 5m
+  tests: false
   build-tags:
     - e2e
     - mage
@@ -31,17 +32,11 @@ linters:
     - exhaustruct
     - contextcheck
 
-issues:
-  exclude-rules:
-    - path: _test\.go
-      linters:
-        - wrapcheck
-        - funlen
-
 linters-settings:
   wrapcheck:
     ignorePackageGlobs:
       - "github.com/cardil/ghet/*"
   gomoddirectives:
     # List of allowed `replace` directives. Default is empty.
-    replace-allow-list: []
+    replace-allow-list:
+      - github.com/go-eden/slf4go

@@ -6,15 +6,13 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"path"
 	"strings"
 
-	"github.com/1set/gut/yos"
+	"emperror.dev/errors"
 	githubapi "github.com/cardil/ghet/pkg/github/api"
 	"github.com/cardil/ghet/pkg/output"
 	"github.com/cardil/ghet/pkg/output/tui"
 	slog "github.com/go-eden/slf4go"
-	"github.com/pkg/errors"
 )
 
 const (
@@ -68,33 +66,14 @@ func (p Plan) downloadAsset(ctx context.Context, asset assetInfo) error {
 		Text: fmt.Sprintf(format, asset.number, asset.total, asset.Name),
 		Size: len(fmt.Sprintf(format, asset.total, asset.total, strings.Repeat("x", asset.longestName))),
 	})
-	if perr := progress.With(func(pc tui.ProgressControl) error {
+	return progress.With(func(pc tui.ProgressControl) error {
 		_, err = io.Copy(out, io.TeeReader(resp.Body, pc))
 		if err != nil {
 			pc.Error(err)
 			return errors.WithStack(err)
 		}
 		return nil
-	}); perr != nil {
-		return perr
-	}
-	return nil
-}
-
-func moveFile(cachePath string, asset githubapi.Asset, args Args) error {
-	if err := os.MkdirAll(args.Destination, executableMode); err != nil {
-		return errors.WithStack(err)
-	}
-	bin := path.Join(args.Destination, asset.Name)
-	if err := yos.MoveFile(cachePath, bin); err != nil {
-		return errors.WithStack(err)
-	}
-	if asset.ContentType == "application/octet-stream" {
-		if err := os.Chmod(bin, executableMode); err != nil {
-			return errors.WithStack(err)
-		}
-	}
-	return nil
+	})
 }
 
 func fileExists(l slog.Logger, path string, size int) bool {

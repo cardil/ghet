@@ -2,6 +2,7 @@ package download
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
 	"hash"
 	"io"
@@ -14,7 +15,6 @@ import (
 	"github.com/cardil/ghet/pkg/output"
 	"github.com/cardil/ghet/pkg/output/tui"
 	slog "github.com/go-eden/slf4go"
-	"github.com/gobuffalo/packr/v2/file/resolver/encoding/hex"
 	"github.com/gookit/color"
 	"github.com/mholt/archiver/v4"
 )
@@ -38,7 +38,7 @@ type archiveAsset struct {
 	plan *Plan
 }
 
-func (aa archiveAsset) open(ctx context.Context, args Args) (fs.FS, error) {
+func (aa archiveAsset) open(ctx context.Context) (fs.FS, error) {
 	log := output.LoggerFrom(ctx)
 	fp := aa.plan.cachePath(ctx, aa.Asset)
 	log.WithFields(slog.Fields{"archive": fp}).Debug("Opening archive")
@@ -52,7 +52,7 @@ func (aa archiveAsset) open(ctx context.Context, args Args) (fs.FS, error) {
 }
 
 func (aa archiveAsset) extract(ctx context.Context, args Args) error {
-	fsys, err := aa.open(ctx, args)
+	fsys, err := aa.open(ctx)
 	if err != nil {
 		return err
 	}
@@ -109,19 +109,48 @@ func extractBinary(
 	if args.MultipleBinaries {
 		binaryPath = path.Join(args.Destination, binary.Name())
 	}
+	hp := hashPair{}
+	if err = extractToBinaryPath(binaryPath, args, cv, binary, progress, ff, &hp); err != nil {
+		return err
+	}
+
+	if hp.actual != nil {
+		actualHash := hex.EncodeToString(hp.actual.Sum(nil))
+		if hp.expect != actualHash {
+			return fmt.Errorf("%w: %s != %s", ErrChecksumMismatch,
+				hp.expect, actualHash)
+		}
+		widgets.Printf(ctx, "✅ Checksum match the extracted binary")
+	}
+
+	if err = os.Chmod(binaryPath, fi.Mode()); err != nil {
+		return unexpected(err)
+	}
+
+	return nil
+}
+
+type hashPair struct {
+	actual hash.Hash
+	expect string
+}
+
+func extractToBinaryPath(
+	binaryPath string, args Args,
+	cv *checksumVerifier, binary compressedBinary,
+	progress tui.Progress, ff fs.File, hp *hashPair,
+) error {
 	out, err := os.Create(binaryPath)
 	if err != nil {
 		return unexpected(err)
 	}
 	var writer io.Writer = out
-	var dig hash.Hash
-	var expectedHash string
 	if args.VerifyInArchive && cv != nil {
 		for _, entry := range cv.entries {
 			if entry.Matches(binary.path) {
-				dig = entry.newDigest()
-				writer = io.MultiWriter(out, dig)
-				expectedHash = entry.hash
+				hp.actual = entry.newDigest()
+				writer = io.MultiWriter(out, hp.actual)
+				hp.expect = entry.hash
 				break
 			}
 		}
@@ -140,20 +169,6 @@ func extractBinary(
 	if err = out.Close(); err != nil {
 		return unexpected(err)
 	}
-
-	if dig != nil {
-		actualHash := hex.EncodeToString(dig.Sum(nil))
-		if expectedHash != actualHash {
-			return fmt.Errorf("%w: %s != %s", ErrChecksumMismatch,
-				expectedHash, actualHash)
-		}
-		widgets.Printf(ctx, "✅ Checksum match the extracted binary")
-	}
-
-	if err = os.Chmod(binaryPath, fi.Mode()); err != nil {
-		return unexpected(err)
-	}
-
 	return nil
 }
 
@@ -210,12 +225,12 @@ func chooseBinary(ctx context.Context, binaries []compressedBinary) (compressedB
 	l := output.LoggerFrom(ctx)
 	if len(binaries) != 1 {
 		l.Warnf("Can't choose binary automatically: %q", binaries)
-		if widgets, err := tui.Interactive[compressedBinary](ctx); err != nil {
+		widgets, err := tui.Interactive[compressedBinary](ctx)
+		if err != nil {
 			return compressedBinary{}, fmt.Errorf("%w: can't choose binary: %q",
 				err, binaries)
-		} else {
-			return widgets.Choose(ctx, binaries, "Choose the binary"), nil
 		}
+		return widgets.Choose(ctx, binaries, "Choose the binary"), nil
 	}
 	return binaries[0], nil
 }

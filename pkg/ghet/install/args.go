@@ -1,10 +1,10 @@
 package install
 
 import (
+	"dario.cat/mergo"
 	"github.com/cardil/ghet/pkg/config"
 	"github.com/cardil/ghet/pkg/github"
 	log "github.com/go-eden/slf4go"
-	"github.com/imdario/mergo"
 )
 
 type Args struct {

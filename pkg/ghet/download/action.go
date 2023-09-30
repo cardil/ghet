@@ -18,8 +18,5 @@ func Action(ctx context.Context, args Args) error {
 	if err != nil {
 		return err
 	}
-	if err = plan.Download(ctx, args); err != nil {
-		return err
-	}
-	return nil
+	return plan.Download(ctx, args)
 }

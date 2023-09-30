@@ -4,10 +4,10 @@ import (
 	"log"
 	"os"
 
+	"emperror.dev/errors"
 	"github.com/cardil/ghet/pkg/context"
 	slog "github.com/go-eden/slf4go"
 	sz "github.com/go-eden/slf4go-zap"
-	"github.com/pkg/errors"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"go.uber.org/zap/zaptest"
