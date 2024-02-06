@@ -1,10 +1,11 @@
 package install
 
 import (
+	"log"
+
 	"dario.cat/mergo"
 	"github.com/cardil/ghet/pkg/config"
 	"github.com/cardil/ghet/pkg/github"
-	log "github.com/go-eden/slf4go"
 )
 
 type Args struct {
@@ -29,7 +30,7 @@ func (a Args) WithDefaults() Args {
 		},
 	}
 	if err := mergo.Merge(&a, defs); err != nil {
-		log.Panic(err)
+		log.Fatal(err)
 	}
 	if a.Asset.FileName.BaseName == "" {
 		a.Asset.FileName.BaseName = a.Repo

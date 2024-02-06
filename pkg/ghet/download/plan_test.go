@@ -9,15 +9,15 @@ import (
 	"testing"
 
 	"github.com/cardil/ghet/pkg/config"
-	"github.com/cardil/ghet/pkg/context"
 	"github.com/cardil/ghet/pkg/ghet/download"
 	"github.com/cardil/ghet/pkg/ghet/install"
 	"github.com/cardil/ghet/pkg/github"
 	ghapi "github.com/cardil/ghet/pkg/github/api"
-	"github.com/cardil/ghet/pkg/output"
 	gh "github.com/google/go-github/v48/github"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"knative.dev/client-pkg/pkg/context"
+	"knative.dev/client-pkg/pkg/output"
 )
 
 var (

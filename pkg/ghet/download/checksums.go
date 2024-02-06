@@ -18,10 +18,9 @@ import (
 
 	"emperror.dev/errors"
 	githubapi "github.com/cardil/ghet/pkg/github/api"
-	"github.com/cardil/ghet/pkg/output"
-	"github.com/cardil/ghet/pkg/output/tui"
-	slog "github.com/go-eden/slf4go"
 	"github.com/gookit/color"
+	"knative.dev/client-pkg/pkg/output/logging"
+	"knative.dev/client-pkg/pkg/output/tui"
 )
 
 // ErrTooManyChecksums is returned when there are more than one checksum.
@@ -45,11 +44,11 @@ var ErrInvalidChecksumLine = errors.New("invalid checksum line")
 var bsdStyleChecksums = regexp.MustCompile(`^(SHA[0-9]{1,3})\s+\(([^)]+)\)\s+=\s+([a-fA-F0-9]{32,128})$`)
 
 func (p Plan) verifyChecksums(ctx context.Context) error {
-	widgets := tui.WidgetsFrom(ctx)
+	widgets := tui.NewWidgets(ctx)
 	cs, err := p.newChecksumVerifier(ctx)
 	if err != nil {
 		if errors.Is(err, ErrNoChecksum) {
-			widgets.Printf(ctx, "⚠️ No checksums found. Skipping verification")
+			widgets.Printf("⚠️ No checksums found. Skipping verification")
 			return nil
 		}
 		return err
@@ -65,13 +64,13 @@ func (p Plan) verifyChecksums(ctx context.Context) error {
 		return err
 	}
 
-	widgets.Printf(ctx, "✅ All checksums match the downloaded assets")
+	widgets.Printf("✅ All checksums match the downloaded assets")
 
 	return nil
 }
 
 func (p Plan) newChecksumVerifier(ctx context.Context) (*checksumVerifier, error) {
-	l := output.LoggerFrom(ctx)
+	l := logging.LoggerFrom(ctx)
 	index := githubapi.CreateIndex(p.Assets)
 	if len(index.Checksums) == 0 {
 		l.Debug("No checksums to verify")
@@ -81,7 +80,7 @@ func (p Plan) newChecksumVerifier(ctx context.Context) (*checksumVerifier, error
 	ca := index.Checksums[0]
 
 	if len(index.Checksums) > 1 {
-		iwidgets, err := tui.Interactive[githubapi.Asset](ctx)
+		iwidgets, err := tui.NewInteractiveWidgets(ctx)
 		if err != nil {
 			if errors.Is(err, tui.ErrNotInteractive) {
 				l.Errorf("Number of checksums is %d. Expected just one.", len(index.Checksums))
@@ -89,7 +88,8 @@ func (p Plan) newChecksumVerifier(ctx context.Context) (*checksumVerifier, error
 			}
 			return nil, unexpected(err)
 		}
-		selected := iwidgets.Choose(ctx, index.Checksums,
+		chooser := tui.NewChooser[githubapi.Asset](iwidgets)
+		selected := chooser.Choose(index.Checksums,
 			"⚠️ More than one checksum file found. Choose proper one")
 		for _, c := range index.Checksums {
 			if c == selected {
@@ -105,7 +105,7 @@ func (p Plan) newChecksumVerifier(ctx context.Context) (*checksumVerifier, error
 		return nil, fmt.Errorf("%w: %d", ErrNotVerifiedAssets, len(index.Binaries))
 	}
 
-	l = l.WithFields(slog.Fields{"checksum": ca.Name})
+	l = l.WithFields(logging.Fields{"checksum": ca.Name})
 	l.Debug("Verifying checksum")
 
 	parser := checksumParser{Asset: ca, plan: &p}
@@ -123,7 +123,7 @@ type checksumParser struct {
 }
 
 func (p *checksumParser) parse(ctx context.Context) (*checksumVerifier, error) {
-	l := output.LoggerFrom(ctx)
+	l := logging.LoggerFrom(ctx)
 	fp := p.plan.cachePath(ctx, p.Asset)
 	l.Debugf("Parsing checksum: %s", fp)
 	if _, ferr := os.Stat(fp); ferr != nil {
@@ -299,17 +299,17 @@ func (c checksumVerifier) verify(
 	ctx context.Context, assets []githubapi.Asset,
 	dirFn func(curr githubapi.Asset) string,
 ) error {
-	widgets := tui.WidgetsFrom(ctx)
+	widgets := tui.NewWidgets(ctx)
 	for _, entry := range c.entries {
 		for i, curr := range assets {
 			if entry.Matches(curr.Name) {
-				spin := widgets.NewSpinner(ctx, fmt.Sprintf("🔍 Verifying checksum for %s",
-					color.Cyan.Sprintf(curr.Name)))
+				spin := widgets.NewSpinner("🔍 Verifying checksum for " +
+					color.Cyan.Sprintf(curr.Name))
 				if err := spin.With(func(_ tui.Spinner) error {
 					dest := dirFn(curr)
 					return entry.verify(curr, dest)
 				}); err != nil {
-					return err
+					return err //nolint:wrapcheck
 				}
 				assets = append(assets[:i], assets[i+1:]...)
 				break

@@ -12,20 +12,19 @@ import (
 	"strings"
 
 	githubapi "github.com/cardil/ghet/pkg/github/api"
-	"github.com/cardil/ghet/pkg/output"
-	"github.com/cardil/ghet/pkg/output/tui"
-	slog "github.com/go-eden/slf4go"
 	"github.com/gookit/color"
 	"github.com/mholt/archiver/v4"
+	"knative.dev/client-pkg/pkg/output/logging"
+	"knative.dev/client-pkg/pkg/output/tui"
 )
 
 func (p Plan) extractArchives(ctx context.Context, args Args) error {
-	widgets := tui.WidgetsFrom(ctx)
+	widgets := tui.NewWidgets(ctx)
 	index := githubapi.CreateIndex(p.Assets)
 	for _, asset := range index.Archives {
-		widgets.Printf(ctx, "📦 Extracting archive: %s", color.Cyan.Sprintf(asset.Name))
+		widgets.Printf("📦 Extracting archive: %s", color.Cyan.Sprintf(asset.Name))
 		ar := archiveAsset{Asset: asset, plan: &p}
-		ctx = output.EnsureLogger(ctx, slog.Fields{"asset": asset.Name})
+		ctx = logging.EnsureLogger(ctx, logging.Fields{"asset": asset.Name})
 		if err := ar.extract(ctx, args); err != nil {
 			return err
 		}
@@ -39,9 +38,9 @@ type archiveAsset struct {
 }
 
 func (aa archiveAsset) open(ctx context.Context) (fs.FS, error) {
-	log := output.LoggerFrom(ctx)
+	log := logging.LoggerFrom(ctx)
 	fp := aa.plan.cachePath(ctx, aa.Asset)
-	log.WithFields(slog.Fields{"archive": fp}).Debug("Opening archive")
+	log.WithFields(logging.Fields{"archive": fp}).Debug("Opening archive")
 
 	fsys, err := archiver.FileSystem(ctx, fp)
 	if err != nil {
@@ -92,7 +91,7 @@ func extractBinary(
 		fi  fs.FileInfo
 		err error
 	)
-	widgets := tui.WidgetsFrom(ctx)
+	widgets := tui.NewWidgets(ctx)
 	if fi, err = archiver.TopDirStat(fsys, binary.path); err != nil {
 		return unexpected(err)
 	}
@@ -101,9 +100,9 @@ func extractBinary(
 	}
 	defer ff.Close()
 
-	label := fmt.Sprintf("🎯 %s", binary.Name())
-	progress := widgets.NewProgress(ctx, int(fi.Size()), tui.Message{
-		Text: label, Size: len(label),
+	label := "🎯 " + binary.Name()
+	progress := widgets.NewProgress(int(fi.Size()), tui.Message{
+		Text: label, PaddingSize: len(label),
 	})
 	binaryPath := path.Join(args.Destination, args.FileName.ToString())
 	if args.MultipleBinaries {
@@ -120,7 +119,7 @@ func extractBinary(
 			return fmt.Errorf("%w: %s != %s", ErrChecksumMismatch,
 				hp.expect, actualHash)
 		}
-		widgets.Printf(ctx, "✅ Checksum match the extracted binary")
+		widgets.Printf("✅ Checksum match the extracted binary")
 	}
 
 	if err = os.Chmod(binaryPath, fi.Mode()); err != nil {
@@ -164,7 +163,7 @@ func extractToBinaryPath(
 		}
 		return nil
 	}); perr != nil {
-		return perr
+		return perr //nolint:wrapcheck
 	}
 	if err = out.Close(); err != nil {
 		return unexpected(err)
@@ -182,13 +181,13 @@ func (b compressedBinary) String() string {
 }
 
 func findBinaries(ctx context.Context, args Args, fsys fs.FS) ([]compressedBinary, error) {
-	l := output.LoggerFrom(ctx)
+	l := logging.LoggerFrom(ctx)
 	binaries := make([]compressedBinary, 0, 1)
 	if err := fs.WalkDir(fsys, ".", func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
-		l.WithFields(slog.Fields{"type": d.Type().Perm()}).
+		l.WithFields(logging.Fields{"type": d.Type().Perm()}).
 			Debugf("Checking in-archive file: %s", p)
 		filename := d.Name()
 		var fi fs.FileInfo
@@ -202,7 +201,7 @@ func findBinaries(ctx context.Context, args Args, fsys fs.FS) ([]compressedBinar
 	}); err != nil {
 		return nil, unexpected(err)
 	}
-	l.WithFields(slog.Fields{"binaries": fmt.Sprintf("%q", binaries)}).
+	l.WithFields(logging.Fields{"binaries": fmt.Sprintf("%q", binaries)}).
 		Debugf("Found %d binaries", len(binaries))
 	return binaries, nil
 }
@@ -222,15 +221,16 @@ func chooseBinaries(ctx context.Context, args Args, binaries []compressedBinary)
 }
 
 func chooseBinary(ctx context.Context, binaries []compressedBinary) (compressedBinary, error) {
-	l := output.LoggerFrom(ctx)
+	l := logging.LoggerFrom(ctx)
 	if len(binaries) != 1 {
 		l.Warnf("Can't choose binary automatically: %q", binaries)
-		widgets, err := tui.Interactive[compressedBinary](ctx)
+		widgets, err := tui.NewInteractiveWidgets(ctx)
 		if err != nil {
 			return compressedBinary{}, fmt.Errorf("%w: can't choose binary: %q",
 				err, binaries)
 		}
-		return widgets.Choose(ctx, binaries, "Choose the binary"), nil
+		chooser := tui.NewChooser[compressedBinary](widgets)
+		return chooser.Choose(binaries, "Choose the binary"), nil
 	}
 	return binaries[0], nil
 }

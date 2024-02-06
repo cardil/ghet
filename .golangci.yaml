@@ -31,6 +31,7 @@ linters:
     - varnamelen
     - exhaustruct
     - contextcheck
+    - depguard
 
 linters-settings:
   wrapcheck:
@@ -39,4 +40,4 @@ linters-settings:
   gomoddirectives:
     # List of allowed `replace` directives. Default is empty.
     replace-allow-list:
-      - github.com/go-eden/slf4go
+      - knative.dev/client-pkg

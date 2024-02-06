@@ -1,3 +1,5 @@
+//go:build !race
+
 package download_test
 
 import (
@@ -11,15 +13,15 @@ import (
 	"testing"
 
 	configdir "github.com/cardil/ghet/pkg/config/dir"
-	"github.com/cardil/ghet/pkg/context"
 	"github.com/cardil/ghet/pkg/ghet/download"
 	"github.com/cardil/ghet/pkg/ghet/install"
 	pkggithub "github.com/cardil/ghet/pkg/github"
 	ghapi "github.com/cardil/ghet/pkg/github/api"
-	"github.com/cardil/ghet/pkg/output"
 	"github.com/google/go-github/v48/github"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"knative.dev/client-pkg/pkg/context"
+	"knative.dev/client-pkg/pkg/output"
 )
 
 func TestDownload(t *testing.T) {

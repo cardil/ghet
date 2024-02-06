@@ -6,7 +6,7 @@ func removeCmd(_ *Args) *cobra.Command {
 	return &cobra.Command{
 		Use:   "remove",
 		Short: "Remove an installed artifact",
-		Run: func(cmd *cobra.Command, args []string) {
+		Run: func(cmd *cobra.Command, _ []string) {
 			cmd.Println("remove")
 		},
 	}

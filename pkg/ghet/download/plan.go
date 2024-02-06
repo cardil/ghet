@@ -8,11 +8,10 @@ import (
 	"emperror.dev/errors"
 	pkggithub "github.com/cardil/ghet/pkg/github"
 	githubapi "github.com/cardil/ghet/pkg/github/api"
-	"github.com/cardil/ghet/pkg/output"
-	"github.com/cardil/ghet/pkg/output/tui"
-	slog "github.com/go-eden/slf4go"
 	"github.com/google/go-github/v48/github"
 	"github.com/gookit/color"
+	"knative.dev/client-pkg/pkg/output/logging"
+	"knative.dev/client-pkg/pkg/output/tui"
 )
 
 var ErrNoAssetFound = errors.New("no matching asset found")
@@ -22,36 +21,36 @@ type Plan struct {
 }
 
 func CreatePlan(ctx context.Context, args Args) (*Plan, error) {
-	ctx = output.EnsureLogger(ctx, slog.Fields{
+	ctx = logging.EnsureLogger(ctx, logging.Fields{
 		"owner": args.Owner,
 		"repo":  args.Repo,
 	})
-	log := output.LoggerFrom(ctx)
+	log := logging.LoggerFrom(ctx)
 	client := githubapi.FromContext(ctx)
 	var (
 		rr  *github.RepositoryRelease
 		r   *github.Response
 		err error
 	)
-	widgets := tui.WidgetsFrom(ctx)
-	spin := widgets.NewSpinner(ctx,
+	widgets := tui.NewWidgets(ctx)
+	spin := widgets.NewSpinner(
 		fmt.Sprintf("⛳️ Getting information about %s release",
 			color.Cyan.Sprintf(args.Tag)),
 	)
-	if err = spin.With(func(spinner tui.Spinner) error {
+	if err = spin.With(func(_ tui.Spinner) error {
 		rr, r, err = fetchRelease(ctx, args, client)
 		return err
 	}); err != nil {
 		return nil, err
 	}
 
-	log.WithFields(slog.Fields{
+	log.WithFields(logging.Fields{
 		"response": r,
 		"release":  rr,
-	}).Trace("Github API response")
+	}).Debug("Github API response")
 
 	assets := make([]githubapi.Asset, 0, 1)
-	log.WithFields(slog.Fields{"assets": namesOf(rr.Assets)}).
+	log.WithFields(logging.Fields{"assets": namesOf(rr.Assets)}).
 		Debug("Checking assets")
 	for _, asset := range rr.Assets {
 		if args.Asset.Matches(asset.GetName()) {
@@ -62,7 +61,7 @@ func CreatePlan(ctx context.Context, args Args) (*Plan, error) {
 				Size:        asset.GetSize(),
 				URL:         asset.GetBrowserDownloadURL(),
 			}
-			log.WithFields(slog.Fields{"asset": a}).Trace("Asset matches")
+			log.WithFields(logging.Fields{"asset": a}).Debug("Asset matches")
 			assets = append(assets, a)
 		}
 	}
@@ -72,14 +71,14 @@ func CreatePlan(ctx context.Context, args Args) (*Plan, error) {
 		return nil, errors.WithStack(ErrNoAssetFound)
 	}
 	plan := &Plan{Assets: assets}
-	log.WithFields(slog.Fields{"plan": plan}).Debug("Plan created")
-	widgets.Printf(ctx, "🎉 Found %s matching assets for %s",
+	log.WithFields(logging.Fields{"plan": plan}).Debug("Plan created")
+	widgets.Printf("🎉 Found %s matching assets for %s",
 		color.Cyan.Sprint(len(assets)), color.Cyan.Sprintf(rr.GetTagName()))
 	return plan, nil
 }
 
 func (p Plan) Download(ctx context.Context, args Args) error {
-	ctx = output.EnsureLogger(ctx, slog.Fields{
+	ctx = logging.EnsureLogger(ctx, logging.Fields{
 		"owner": args.Owner,
 		"repo":  args.Repo,
 	})
@@ -150,7 +149,7 @@ func fetchRelease(
 		rr  *github.RepositoryRelease
 		r   *github.Response
 	)
-	log := output.LoggerFrom(ctx)
+	log := logging.LoggerFrom(ctx)
 	if args.Tag == pkggithub.LatestTag {
 		log.Debug("Getting latest release")
 		if rr, r, err = client.Repositories.GetLatestRelease(ctx, args.Owner, args.Repo); err != nil {
@@ -158,7 +157,7 @@ func fetchRelease(
 		}
 		args.Tag = rr.GetTagName()
 	} else {
-		log.WithFields(slog.Fields{"tag": args.Tag}).
+		log.WithFields(logging.Fields{"tag": args.Tag}).
 			Debug("Getting release")
 		if rr, r, err = client.Repositories.GetReleaseByTag(ctx,
 			args.Owner, args.Repo, args.Tag); err != nil {

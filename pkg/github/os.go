@@ -2,10 +2,8 @@ package github
 
 import (
 	"runtime"
-	"strings"
 
 	"github.com/cardil/ghet/pkg/match"
-	"github.com/u-root/u-root/pkg/ldd"
 )
 
 type OsFamily string
@@ -77,15 +75,4 @@ var osMatchers = map[OperatingSystem]match.Matcher{ //nolint:gochecknoglobals
 	OSWindows: match.Any(
 		match.Substr("win"),
 	),
-}
-
-func linuxFlavor() OperatingSystem {
-	if fis, err := ldd.Ldd([]string{"/bin/sh"}); err == nil {
-		for _, fi := range fis {
-			if strings.Contains(fi.Name(), "musl") {
-				return OSLinuxMusl
-			}
-		}
-	}
-	return OSLinuxGnu
 }

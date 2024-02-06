@@ -7,9 +7,10 @@ import (
 	"emperror.dev/errors"
 	"github.com/cardil/ghet/pkg/config"
 	"github.com/cardil/ghet/pkg/metadata"
-	"github.com/cardil/ghet/pkg/output"
 	"github.com/spf13/cobra"
 	"github.com/wavesoftware/go-commandline"
+	"knative.dev/client-pkg/pkg/output"
+	"knative.dev/client-pkg/pkg/output/logging"
 )
 
 // Options to override the commandline for testing purposes.
@@ -37,7 +38,9 @@ func (a *App) Command() *cobra.Command {
 		c.AddCommand(cmd(&a.Args))
 	}
 	c.SetOut(os.Stdout)
-	c.SetContext(output.EnsureLogFile(context.Background()))
+	c.SetContext(logging.EnsureLogger(
+		logging.EnsureLogFile(context.Background())),
+	)
 	a.setFlags(c)
 	c.PostRunE = postRunE
 	return c
@@ -45,7 +48,7 @@ func (a *App) Command() *cobra.Command {
 
 func postRunE(cmd *cobra.Command, _ []string) error {
 	ctx := cmd.Context()
-	logFile := output.LogFileFrom(ctx)
+	logFile := logging.LogFileFrom(ctx)
 	if err := logFile.Sync(); err != nil {
 		return errors.WithStack(err)
 	}

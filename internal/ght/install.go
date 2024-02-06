@@ -21,7 +21,7 @@ func installCmd(_ *Args) *cobra.Command {
 	return &cobra.Command{
 		Use:   "install",
 		Short: "Install an artifact from GitHub release",
-		Run: func(cmd *cobra.Command, args []string) {
+		Run: func(cmd *cobra.Command, _ []string) {
 			cmd.Println("install")
 		},
 	}

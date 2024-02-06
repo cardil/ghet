@@ -10,9 +10,8 @@ import (
 
 	"emperror.dev/errors"
 	githubapi "github.com/cardil/ghet/pkg/github/api"
-	"github.com/cardil/ghet/pkg/output"
-	"github.com/cardil/ghet/pkg/output/tui"
-	slog "github.com/go-eden/slf4go"
+	"knative.dev/client-pkg/pkg/output/logging"
+	"knative.dev/client-pkg/pkg/output/tui"
 )
 
 const (
@@ -27,13 +26,13 @@ type assetInfo struct {
 }
 
 func (p Plan) downloadAsset(ctx context.Context, asset assetInfo) error {
-	l := output.LoggerFrom(ctx).WithFields(slog.Fields{
+	l := logging.LoggerFrom(ctx).WithFields(logging.Fields{
 		"asset": asset.Name,
 	})
 	cachePath := p.cachePath(ctx, asset.Asset)
 
 	if fileExists(l, cachePath, asset.Size) {
-		l.WithFields(slog.Fields{"cachePath": cachePath}).
+		l.WithFields(logging.Fields{"cachePath": cachePath}).
 			Debug("Asset already downloaded")
 		return nil
 	}
@@ -61,12 +60,13 @@ func (p Plan) downloadAsset(ctx context.Context, asset assetInfo) error {
 	}
 	defer out.Close()
 
-	format := "📥 %d/%d %s"
-	progress := tui.WidgetsFrom(ctx).NewProgress(ctx, asset.Size, tui.Message{
-		Text: fmt.Sprintf(format, asset.number, asset.total, asset.Name),
-		Size: len(fmt.Sprintf(format, asset.total, asset.total, strings.Repeat("x", asset.longestName))),
+	format := "📥 %d%d %s"
+
+	progress := tui.NewWidgets(ctx).NewProgress(asset.Size, tui.Message{
+		Text:        fmt.Sprintf(format, asset.number, asset.total, asset.Name),
+		PaddingSize: len(fmt.Sprintf(format, asset.total, asset.total, strings.Repeat("x", asset.longestName))),
 	})
-	return progress.With(func(pc tui.ProgressControl) error {
+	return progress.With(func(pc tui.ProgressControl) error { //nolint:wrapcheck
 		_, err = io.Copy(out, io.TeeReader(resp.Body, pc))
 		if err != nil {
 			pc.Error(err)
@@ -76,16 +76,16 @@ func (p Plan) downloadAsset(ctx context.Context, asset assetInfo) error {
 	})
 }
 
-func fileExists(l slog.Logger, path string, size int) bool {
+func fileExists(l logging.Logger, path string, size int) bool {
 	fi, err := os.Stat(path)
 	if err == nil {
 		if fi.Size() == int64(size) {
 			return true
 		}
-		l.WithFields(slog.Fields{
+		l.WithFields(logging.Fields{
 			"file-info": fi,
 			"size":      size,
-		}).Trace("File size mismatch")
+		}).Debug("File size mismatch")
 		_ = os.Remove(path)
 		return false
 	}

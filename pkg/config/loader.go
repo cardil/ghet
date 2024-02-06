@@ -6,8 +6,7 @@ import (
 	"os"
 
 	"emperror.dev/errors"
-	"github.com/cardil/ghet/pkg/output"
-	log "github.com/go-eden/slf4go"
+	"knative.dev/client-pkg/pkg/output/logging"
 	"sigs.k8s.io/yaml"
 )
 
@@ -15,8 +14,8 @@ import (
 var ErrInvalidConfigFile = errors.New("invalid config file")
 
 func Load(ctx context.Context, file string) (Config, error) {
-	l := output.LoggerFrom(ctx).
-		WithFields(log.Fields{"configPath": file})
+	l := logging.LoggerFrom(ctx).
+		WithFields(logging.Fields{"configPath": file})
 	l.Debug("Loading config as YAML")
 	defaults := Config{
 		Sites: []Site{{

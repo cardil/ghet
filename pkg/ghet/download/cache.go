@@ -4,13 +4,13 @@ import (
 	"context"
 	"fmt"
 	"hash/crc32"
+	"log"
 	"os"
 	"path"
 	"strconv"
 
 	configdir "github.com/cardil/ghet/pkg/config/dir"
 	githubapi "github.com/cardil/ghet/pkg/github/api"
-	log "github.com/go-eden/slf4go"
 )
 
 func (p Plan) cachePath(ctx context.Context, asset githubapi.Asset) string {
