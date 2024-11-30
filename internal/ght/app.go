@@ -9,8 +9,8 @@ import (
 	"github.com/cardil/ghet/pkg/metadata"
 	"github.com/spf13/cobra"
 	"github.com/wavesoftware/go-commandline"
-	"knative.dev/client-pkg/pkg/output"
-	"knative.dev/client-pkg/pkg/output/logging"
+	"knative.dev/client/pkg/output"
+	"knative.dev/client/pkg/output/logging"
 )
 
 // Options to override the commandline for testing purposes.

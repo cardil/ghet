@@ -14,8 +14,8 @@ import (
 	githubapi "github.com/cardil/ghet/pkg/github/api"
 	"github.com/gookit/color"
 	"github.com/mholt/archiver/v4"
-	"knative.dev/client-pkg/pkg/output/logging"
-	"knative.dev/client-pkg/pkg/output/tui"
+	"knative.dev/client/pkg/output/logging"
+	"knative.dev/client/pkg/output/tui"
 )
 
 func (p Plan) extractArchives(ctx context.Context, args Args) error {

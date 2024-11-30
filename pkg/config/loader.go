@@ -6,7 +6,7 @@ import (
 	"os"
 
 	"emperror.dev/errors"
-	"knative.dev/client-pkg/pkg/output/logging"
+	"knative.dev/client/pkg/output/logging"
 	"sigs.k8s.io/yaml"
 )
 

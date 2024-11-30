@@ -5,9 +5,8 @@ import "strings"
 func Substr(sub ...string) Matcher {
 	mchs := make([]Matcher, len(sub))
 	for i, s := range sub {
-		substr := s
 		mchs[i] = MatcherFn(func(name string) bool {
-			return strings.Contains(name, substr)
+			return strings.Contains(name, s)
 		})
 	}
 	return Every(mchs...)

@@ -19,8 +19,8 @@ import (
 	"emperror.dev/errors"
 	githubapi "github.com/cardil/ghet/pkg/github/api"
 	"github.com/gookit/color"
-	"knative.dev/client-pkg/pkg/output/logging"
-	"knative.dev/client-pkg/pkg/output/tui"
+	"knative.dev/client/pkg/output/logging"
+	"knative.dev/client/pkg/output/tui"
 )
 
 // ErrTooManyChecksums is returned when there are more than one checksum.
@@ -305,7 +305,7 @@ func (c checksumVerifier) verify(
 			if entry.Matches(curr.Name) {
 				spin := widgets.NewSpinner("🔍 Verifying checksum for " +
 					color.Cyan.Sprintf(curr.Name))
-				if err := spin.With(func(_ tui.Spinner) error {
+				if err := spin.With(func(_ tui.SpinnerControl) error {
 					dest := dirFn(curr)
 					return entry.verify(curr, dest)
 				}); err != nil {

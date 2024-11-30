@@ -10,8 +10,8 @@ import (
 
 	"emperror.dev/errors"
 	githubapi "github.com/cardil/ghet/pkg/github/api"
-	"knative.dev/client-pkg/pkg/output/logging"
-	"knative.dev/client-pkg/pkg/output/tui"
+	"knative.dev/client/pkg/output/logging"
+	"knative.dev/client/pkg/output/tui"
 )
 
 const (
