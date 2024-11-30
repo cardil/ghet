@@ -3,7 +3,7 @@ package download
 import (
 	"context"
 
-	"knative.dev/client-pkg/pkg/output/logging"
+	"knative.dev/client/pkg/output/logging"
 )
 
 func Action(ctx context.Context, args Args) error {

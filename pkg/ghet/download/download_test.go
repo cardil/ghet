@@ -20,8 +20,8 @@ import (
 	"github.com/google/go-github/v48/github"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"knative.dev/client-pkg/pkg/context"
-	"knative.dev/client-pkg/pkg/output"
+	"knative.dev/client/pkg/context"
+	"knative.dev/client/pkg/output"
 )
 
 func TestDownload(t *testing.T) {

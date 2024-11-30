@@ -10,8 +10,8 @@ import (
 	githubapi "github.com/cardil/ghet/pkg/github/api"
 	"github.com/google/go-github/v48/github"
 	"github.com/gookit/color"
-	"knative.dev/client-pkg/pkg/output/logging"
-	"knative.dev/client-pkg/pkg/output/tui"
+	"knative.dev/client/pkg/output/logging"
+	"knative.dev/client/pkg/output/tui"
 )
 
 var ErrNoAssetFound = errors.New("no matching asset found")
@@ -37,7 +37,7 @@ func CreatePlan(ctx context.Context, args Args) (*Plan, error) {
 		fmt.Sprintf("⛳️ Getting information about %s release",
 			color.Cyan.Sprintf(args.Tag)),
 	)
-	if err = spin.With(func(_ tui.Spinner) error {
+	if err = spin.With(func(_ tui.SpinnerControl) error {
 		rr, r, err = fetchRelease(ctx, args, client)
 		return err
 	}); err != nil {

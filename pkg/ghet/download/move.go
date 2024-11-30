@@ -8,7 +8,7 @@ import (
 
 	"github.com/1set/gut/yos"
 	githubapi "github.com/cardil/ghet/pkg/github/api"
-	"knative.dev/client-pkg/pkg/output/logging"
+	"knative.dev/client/pkg/output/logging"
 )
 
 func (p Plan) moveBinaries(ctx context.Context, args Args) error {

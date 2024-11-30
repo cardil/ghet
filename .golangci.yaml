@@ -39,5 +39,4 @@ linters-settings:
       - "github.com/cardil/ghet/*"
   gomoddirectives:
     # List of allowed `replace` directives. Default is empty.
-    replace-allow-list:
-      - knative.dev/client-pkg
+    replace-allow-list: []
