@@ -38,7 +38,7 @@ type installArgs struct {
 }
 
 func (ia *installArgs) defaults() installArgs {
-	defs := install.Args{}.WithDefaults()
+	defs := install.Installation{}.WithDefaults()
 	return installArgs{
 		site:      defs.Site.Address,
 		checksums: defs.Checksums.FileName.ToString(),
@@ -79,9 +79,9 @@ func (ia *installArgs) valiadate() func(cmd *cobra.Command, args []string) error
 	}
 }
 
-func (ia *installArgs) parse(ctx context.Context) install.Args {
+func (ia *installArgs) parse(ctx context.Context) install.Installation {
 	cfg := config.FromContext(ctx)
-	args := install.Args{
+	args := install.Installation{
 		Asset: github.Asset{
 			FileName: ia.filename(),
 			Release: github.Release{

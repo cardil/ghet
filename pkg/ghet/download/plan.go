@@ -20,10 +20,10 @@ type Plan struct {
 	Assets []githubapi.Asset
 }
 
-func CreatePlan(ctx context.Context, args Args) (*Plan, error) {
+func CreatePlan(ctx context.Context, download Download) (*Plan, error) {
 	ctx = logging.EnsureLogger(ctx, logging.Fields{
-		"owner": args.Owner,
-		"repo":  args.Repo,
+		"owner": download.Owner,
+		"repo":  download.Repo,
 	})
 	log := logging.LoggerFrom(ctx)
 	client := githubapi.FromContext(ctx)
@@ -35,10 +35,10 @@ func CreatePlan(ctx context.Context, args Args) (*Plan, error) {
 	widgets := tui.NewWidgets(ctx)
 	spin := widgets.NewSpinner(
 		fmt.Sprintf("⛳️ Getting information about %s release",
-			color.Cyan.Sprintf(args.Tag)),
+			color.Cyan.Sprintf(download.Tag)),
 	)
 	if err = spin.With(func(_ tui.SpinnerControl) error {
-		rr, r, err = fetchRelease(ctx, args, client)
+		rr, r, err = fetchRelease(ctx, download, client)
 		return err
 	}); err != nil {
 		return nil, err
@@ -53,7 +53,7 @@ func CreatePlan(ctx context.Context, args Args) (*Plan, error) {
 	log.WithFields(logging.Fields{"assets": namesOf(rr.Assets)}).
 		Debug("Checking assets")
 	for _, asset := range rr.Assets {
-		if args.Asset.Matches(asset.GetName()) {
+		if download.Asset.Matches(asset.GetName()) {
 			a := githubapi.Asset{
 				ID:          asset.GetID(),
 				Name:        asset.GetName(),
@@ -77,10 +77,10 @@ func CreatePlan(ctx context.Context, args Args) (*Plan, error) {
 	return plan, nil
 }
 
-func (p Plan) Download(ctx context.Context, args Args) error {
+func (p Plan) Download(ctx context.Context, download Download) error {
 	ctx = logging.EnsureLogger(ctx, logging.Fields{
-		"owner": args.Owner,
-		"repo":  args.Repo,
+		"owner": download.Owner,
+		"repo":  download.Repo,
 	})
 	longestName := 0
 
@@ -101,18 +101,18 @@ func (p Plan) Download(ctx context.Context, args Args) error {
 			return err
 		}
 	}
-	if !args.VerifyInArchive {
+	if !download.VerifyInArchive {
 		if err := p.verifyChecksums(ctx); err != nil {
 			return err
 		}
 	}
-	if err := os.MkdirAll(args.Destination, executableMode); err != nil {
+	if err := os.MkdirAll(download.Destination, executableMode); err != nil {
 		return unexpected(err)
 	}
-	if err := p.extractArchives(ctx, args); err != nil {
+	if err := p.extractArchives(ctx, download); err != nil {
 		return err
 	}
-	if err := p.moveBinaries(ctx, args); err != nil {
+	if err := p.moveBinaries(ctx, download); err != nil {
 		return err
 	}
 
@@ -141,7 +141,7 @@ func namesOf(assets []*github.ReleaseAsset) []string {
 }
 
 func fetchRelease(
-	ctx context.Context, args Args,
+	ctx context.Context, download Download,
 	client *github.Client,
 ) (*github.RepositoryRelease, *github.Response, error) {
 	var (
@@ -150,17 +150,17 @@ func fetchRelease(
 		r   *github.Response
 	)
 	log := logging.LoggerFrom(ctx)
-	if args.Tag == pkggithub.LatestTag {
+	if download.Tag == pkggithub.LatestTag {
 		log.Debug("Getting latest release")
-		if rr, r, err = client.Repositories.GetLatestRelease(ctx, args.Owner, args.Repo); err != nil {
+		if rr, r, err = client.Repositories.GetLatestRelease(ctx, download.Owner, download.Repo); err != nil {
 			return nil, nil, errors.WithStack(err)
 		}
-		args.Tag = rr.GetTagName()
+		download.Tag = rr.GetTagName()
 	} else {
-		log.WithFields(logging.Fields{"tag": args.Tag}).
+		log.WithFields(logging.Fields{"tag": download.Tag}).
 			Debug("Getting release")
 		if rr, r, err = client.Repositories.GetReleaseByTag(ctx,
-			args.Owner, args.Repo, args.Tag); err != nil {
+			download.Owner, download.Repo, download.Tag); err != nil {
 			return nil, nil, errors.WithStack(err)
 		}
 	}

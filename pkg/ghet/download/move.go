@@ -11,17 +11,17 @@ import (
 	"knative.dev/client/pkg/output/logging"
 )
 
-func (p Plan) moveBinaries(ctx context.Context, args Args) error {
+func (p Plan) moveBinaries(ctx context.Context, download Download) error {
 	l := logging.LoggerFrom(ctx)
 	index := githubapi.CreateIndex(p.Assets)
-	binaryName := args.FileName.ToString()
+	binaryName := download.FileName.ToString()
 	for _, binary := range index.Binaries {
 		if len(index.Binaries) > 1 {
 			binaryName = binary.Name
 		}
 		l.WithFields(logging.Fields{"binary": binary}).Debug("Moving binary")
 		source := p.cachePath(ctx, binary)
-		target := path.Join(args.Destination, binaryName)
+		target := path.Join(download.Destination, binaryName)
 		if err := yos.MoveFile(source, target); err != nil {
 			return unexpected(err)
 		}

@@ -11,7 +11,7 @@ func TestParse(t *testing.T) {
 	t.Parallel()
 	tests := []testcase{{
 		args: "cardil/ghet",
-		want: install.Args{
+		want: install.Installation{
 			Asset: github.Asset{
 				FileName: github.FileName{
 					BaseName:  "ghet",
@@ -28,7 +28,7 @@ func TestParse(t *testing.T) {
 		},
 	}, {
 		args: "owner/repo@version::archive-name!!binary-name",
-		want: install.Args{
+		want: install.Installation{
 			Asset: github.Asset{
 				FileName: github.FileName{
 					BaseName:  "binary-name",
@@ -45,7 +45,7 @@ func TestParse(t *testing.T) {
 		},
 	}, {
 		args: "owner/repo@version",
-		want: install.Args{
+		want: install.Installation{
 			Asset: github.Asset{
 				FileName: github.FileName{
 					BaseName: "repo",
@@ -75,5 +75,5 @@ func TestParse(t *testing.T) {
 
 type testcase struct {
 	args string
-	want install.Args
+	want install.Installation
 }

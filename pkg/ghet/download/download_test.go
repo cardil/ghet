@@ -170,7 +170,7 @@ func (tc downloadTestCase) buildPlan(t testingT, baseurl *url.URL) download.Plan
 	return p
 }
 
-func (tc downloadTestCase) buildArgs(wd string) download.Args {
+func (tc downloadTestCase) buildArgs(wd string) download.Download {
 	fields := strings.FieldsFunc(tc.name, func(r rune) bool {
 		return r == '/'
 	})
@@ -178,8 +178,8 @@ func (tc downloadTestCase) buildArgs(wd string) download.Args {
 		Owner: fields[0],
 		Repo:  fields[1],
 	}
-	return download.Args{
-		Args: install.Args{
+	return download.Download{
+		Installation: install.Installation{
 			Asset: pkggithub.Asset{
 				FileName: pkggithub.FileName{
 					BaseName: tc.args.name,

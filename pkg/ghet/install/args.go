@@ -8,15 +8,15 @@ import (
 	"github.com/cardil/ghet/pkg/github"
 )
 
-type Args struct {
+type Installation struct {
 	github.Asset
 	config.Site
 	MultipleBinaries bool
 	VerifyInArchive  bool
 }
 
-func (a Args) WithDefaults() Args {
-	defs := Args{
+func (a Installation) WithDefaults() Installation {
+	defs := Installation{
 		Asset: github.Asset{
 			Architecture:    github.CurrentArchitecture(),
 			OperatingSystem: github.CurrentOS(),

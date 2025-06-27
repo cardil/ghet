@@ -11,7 +11,7 @@ import (
 //
 //	The spec is a string that contains the arguments in a format of
 //	"owner/repo[@version][::archive-name][!!binary-name]".
-func Parse(spec string) Args {
+func Parse(spec string) Installation {
 	const expectedParts = 2
 	parts := strings.SplitN(spec, "@", expectedParts)
 	p2 := strings.SplitN(parts[0], "/", expectedParts)
@@ -41,7 +41,7 @@ func Parse(spec string) Args {
 	if len(parts) > 1 {
 		binary, ext = parts[0], parts[1]
 	}
-	args := Args{
+	args := Installation{
 		Asset: github.Asset{
 			FileName: github.FileName{
 				BaseName:  binary,

@@ -40,9 +40,9 @@ func downloadAction(da *downloadArgs) func(ctx context.Context) error {
 	}
 }
 
-func (da *downloadArgs) parse(ctx context.Context) download.Args {
-	return download.Args{
-		Args:        da.installArgs.parse(ctx),
-		Destination: da.destination,
+func (da *downloadArgs) parse(ctx context.Context) download.Download {
+	return download.Download{
+		Installation: da.installArgs.parse(ctx),
+		Destination:  da.destination,
 	}
 }
