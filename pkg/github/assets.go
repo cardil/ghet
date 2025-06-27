@@ -87,10 +87,15 @@ func NewFileName(s string) FileName {
 func (a Asset) Matches(filename string) bool {
 	name := strings.ToLower(filename)
 	basename := strings.ToLower(a.FileName.BaseName)
-	coords := strings.TrimPrefix(name, basename)
+	coords := strings.Trim(
+		strings.TrimSuffix(
+			strings.TrimPrefix(name, basename),
+			basename,
+		), "-_",
+	)
 	cm := a.Checksums.matcher(basename, a.Architecture, a.OperatingSystem)
-	return cm.Matches(name) ||
-		(strings.HasPrefix(name, basename) &&
-			a.Architecture.Matches(coords) &&
-			a.OperatingSystem.Matches(coords))
+	return cm.Matches(name) || ((strings.HasPrefix(name, basename) ||
+		strings.HasSuffix(name, basename)) &&
+		a.Architecture.Matches(coords) &&
+		a.OperatingSystem.Matches(coords))
 }
