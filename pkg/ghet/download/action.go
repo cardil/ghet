@@ -6,14 +6,14 @@ import (
 	"knative.dev/client/pkg/output/logging"
 )
 
-func Action(ctx context.Context, args Args) error {
+func Action(ctx context.Context, download Download) error {
 	ctx = logging.EnsureLogger(ctx, logging.Fields{
-		"owner": args.Owner,
-		"repo":  args.Repo,
+		"owner": download.Owner,
+		"repo":  download.Repo,
 	})
-	plan, err := CreatePlan(ctx, args)
+	plan, err := CreatePlan(ctx, download)
 	if err != nil {
 		return err
 	}
-	return plan.Download(ctx, args)
+	return plan.Download(ctx, download)
 }

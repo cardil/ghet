@@ -18,14 +18,14 @@ import (
 	"knative.dev/client/pkg/output/tui"
 )
 
-func (p Plan) extractArchives(ctx context.Context, args Args) error {
+func (p Plan) extractArchives(ctx context.Context, download Download) error {
 	widgets := tui.NewWidgets(ctx)
 	index := githubapi.CreateIndex(p.Assets)
 	for _, asset := range index.Archives {
 		widgets.Printf("📦 Extracting archive: %s", color.Cyan.Sprintf(asset.Name))
 		ar := archiveAsset{Asset: asset, plan: &p}
 		ctx = logging.EnsureLogger(ctx, logging.Fields{"asset": asset.Name})
-		if err := ar.extract(ctx, args); err != nil {
+		if err := ar.extract(ctx, download); err != nil {
 			return err
 		}
 	}
@@ -50,30 +50,30 @@ func (aa archiveAsset) open(ctx context.Context) (fs.FS, error) {
 	return fsys, nil
 }
 
-func (aa archiveAsset) extract(ctx context.Context, args Args) error {
+func (aa archiveAsset) extract(ctx context.Context, download Download) error {
 	fsys, err := aa.open(ctx)
 	if err != nil {
 		return err
 	}
 
 	var binaries []compressedBinary
-	if binaries, err = findBinaries(ctx, args, fsys); err != nil {
+	if binaries, err = findBinaries(ctx, download, fsys); err != nil {
 		return err
 	}
 
-	if binaries, err = chooseBinaries(ctx, args, binaries); err != nil {
+	if binaries, err = chooseBinaries(ctx, download, binaries); err != nil {
 		return err
 	}
 
 	var cv *checksumVerifier
-	if args.VerifyInArchive {
+	if download.VerifyInArchive {
 		if cv, err = aa.plan.newChecksumVerifier(ctx); err != nil {
 			return err
 		}
 	}
 
 	for _, binary := range binaries {
-		if err = extractBinary(ctx, args, fsys, binary, cv); err != nil {
+		if err = extractBinary(ctx, download, fsys, binary, cv); err != nil {
 			return err
 		}
 	}
@@ -82,7 +82,7 @@ func (aa archiveAsset) extract(ctx context.Context, args Args) error {
 }
 
 func extractBinary(
-	ctx context.Context, args Args,
+	ctx context.Context, download Download,
 	fsys fs.FS, binary compressedBinary,
 	cv *checksumVerifier,
 ) error {
@@ -104,12 +104,12 @@ func extractBinary(
 	progress := widgets.NewProgress(int(fi.Size()), tui.Message{
 		Text: label, PaddingSize: len(label),
 	})
-	binaryPath := path.Join(args.Destination, args.FileName.ToString())
-	if args.MultipleBinaries {
-		binaryPath = path.Join(args.Destination, binary.Name())
+	binaryPath := path.Join(download.Destination, download.FileName.ToString())
+	if download.MultipleBinaries {
+		binaryPath = path.Join(download.Destination, binary.Name())
 	}
 	hp := hashPair{}
-	if err = extractToBinaryPath(binaryPath, args, cv, binary, progress, ff, &hp); err != nil {
+	if err = extractToBinaryPath(binaryPath, download, cv, binary, progress, ff, &hp); err != nil {
 		return err
 	}
 
@@ -135,7 +135,7 @@ type hashPair struct {
 }
 
 func extractToBinaryPath(
-	binaryPath string, args Args,
+	binaryPath string, download Download,
 	cv *checksumVerifier, binary compressedBinary,
 	progress tui.Progress, ff fs.File, hp *hashPair,
 ) error {
@@ -144,7 +144,7 @@ func extractToBinaryPath(
 		return unexpected(err)
 	}
 	var writer io.Writer = out
-	if args.VerifyInArchive && cv != nil {
+	if download.VerifyInArchive && cv != nil {
 		for _, entry := range cv.entries {
 			if entry.Matches(binary.path) {
 				hp.actual = entry.newDigest()
@@ -180,7 +180,7 @@ func (b compressedBinary) String() string {
 	return fmt.Sprintf("%s %s %s", b.path, b.Mode().Perm(), b.ModTime())
 }
 
-func findBinaries(ctx context.Context, args Args, fsys fs.FS) ([]compressedBinary, error) {
+func findBinaries(ctx context.Context, download Download, fsys fs.FS) ([]compressedBinary, error) {
 	l := logging.LoggerFrom(ctx)
 	binaries := make([]compressedBinary, 0, 1)
 	if err := fs.WalkDir(fsys, ".", func(p string, d fs.DirEntry, err error) error {
@@ -194,7 +194,7 @@ func findBinaries(ctx context.Context, args Args, fsys fs.FS) ([]compressedBinar
 		if fi, err = d.Info(); err != nil {
 			return unexpected(err)
 		}
-		if !d.IsDir() && isExecutable(fi.Mode().Perm()) && strings.Contains(filename, args.FileName.BaseName) {
+		if !d.IsDir() && isExecutable(fi.Mode().Perm()) && strings.Contains(filename, download.FileName.BaseName) {
 			binaries = append(binaries, compressedBinary{p, fi})
 		}
 		return nil
@@ -206,8 +206,8 @@ func findBinaries(ctx context.Context, args Args, fsys fs.FS) ([]compressedBinar
 	return binaries, nil
 }
 
-func chooseBinaries(ctx context.Context, args Args, binaries []compressedBinary) ([]compressedBinary, error) {
-	if args.MultipleBinaries {
+func chooseBinaries(ctx context.Context, download Download, binaries []compressedBinary) ([]compressedBinary, error) {
+	if download.MultipleBinaries {
 		return binaries, nil
 	}
 	var (

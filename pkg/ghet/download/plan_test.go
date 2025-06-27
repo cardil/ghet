@@ -224,8 +224,8 @@ func (tc resolvedCreatePlanTestCase) performTest(ctx context.Context, t testingT
 		if tc.os == "" {
 			tc.os = github.OSDarwin
 		}
-		args := download.Args{
-			Args: install.Args{
+		dnload := download.Download{
+			Installation: install.Installation{
 				Asset: github.Asset{
 					FileName:        github.FileName{BaseName: tc.args.basename},
 					Architecture:    tc.arch,
@@ -242,7 +242,7 @@ func (tc resolvedCreatePlanTestCase) performTest(ctx context.Context, t testingT
 			},
 			Destination: t.TempDir(),
 		}
-		p, err := download.CreatePlan(ctx, args)
+		p, err := download.CreatePlan(ctx, dnload)
 		assert.ErrorIs(t, err, tc.wantErr, "%+v", err)
 		assert.EqualValues(t,
 			tc.normalize(tc.want),
