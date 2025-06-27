@@ -1,42 +1,46 @@
+version: "2"
 run:
-  timeout: 5m
-  tests: false
   build-tags:
     - e2e
     - mage
     - ignored
-
+  tests: false
 linters:
-  disable-all: false
-  presets:
-    - bugs
-    - unused
-    - complexity
-    - format
-    - performance
-    - style
-  enable:
-    - gci
+  default: all
   disable:
-    - paralleltest
-    - nlreturn
-    - exhaustivestruct
-    - wsl
-    - godox
-    - scopelint
-    - maligned
-    - interfacer
-    - golint
-    - ireturn
-    - varnamelen
-    - exhaustruct
     - contextcheck
     - depguard
-
-linters-settings:
-  wrapcheck:
-    ignorePackageGlobs:
-      - "github.com/cardil/ghet/*"
-  gomoddirectives:
-    # List of allowed `replace` directives. Default is empty.
-    replace-allow-list: []
+    - exhaustruct
+    - godox
+    - ireturn
+    - nlreturn
+    - paralleltest
+    - varnamelen
+    - wsl
+  settings:
+    wrapcheck:
+      ignore-package-globs:
+        - github.com/cardil/ghet/*
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  enable:
+    - gci
+    - gofmt
+    - gofumpt
+    - goimports
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$

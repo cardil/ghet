@@ -45,7 +45,7 @@ func (s Site) Merge(override Site) Site {
 		s.Address = override.Address
 	}
 	if s.Auth == nil {
-		s.Auth = override.Auth.copy()
+		s.Auth = override.copy()
 	}
 	return s
 }

@@ -163,7 +163,7 @@ func (p *checksumParser) parseLine(ctx context.Context, line string) error {
 		}
 		entry = e
 	}
-	p.checksumVerifier.entries = append(p.checksumVerifier.entries, entry)
+	p.entries = append(p.entries, entry)
 	return nil
 }
 
@@ -266,6 +266,10 @@ type checksumEntry struct {
 	filename string
 }
 
+func (e checksumEntry) Matches(name string) bool {
+	return e.filename == "-" || e.filename == name
+}
+
 func (e checksumEntry) verify(asset githubapi.Asset, dest string) error {
 	dig := e.newDigest()
 	fp := path.Join(dest, asset.Name)
@@ -285,10 +289,6 @@ func (e checksumEntry) verify(asset githubapi.Asset, dest string) error {
 			ErrChecksumMismatch, asset.Name, actual, e.hash)
 	}
 	return nil
-}
-
-func (e checksumEntry) Matches(name string) bool {
-	return e.filename == "-" || e.filename == name
 }
 
 type checksumVerifier struct {

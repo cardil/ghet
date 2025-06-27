@@ -40,8 +40,8 @@ type installArgs struct {
 func (ia *installArgs) defaults() installArgs {
 	defs := install.Args{}.WithDefaults()
 	return installArgs{
-		site:      defs.Site.Address,
-		checksums: defs.Checksums.FileName.ToString(),
+		site:      defs.Address,
+		checksums: defs.Checksums.ToString(),
 		version:   defs.Tag,
 	}
 }

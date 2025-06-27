@@ -32,11 +32,11 @@ func (a Args) WithDefaults() Args {
 	if err := mergo.Merge(&a, defs); err != nil {
 		log.Fatal(err)
 	}
-	if a.Asset.FileName.BaseName == "" {
-		a.Asset.FileName.BaseName = a.Repo
+	if a.BaseName == "" {
+		a.BaseName = a.Repo
 	}
-	if a.OperatingSystem == github.OSWindows && a.Asset.FileName.Extension == "" {
-		a.Asset.FileName.Extension = "exe"
+	if a.OperatingSystem == github.OSWindows && a.Extension == "" {
+		a.Extension = "exe"
 	}
 	return a
 }
