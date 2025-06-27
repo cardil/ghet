@@ -1,9 +1,0 @@
-name: Build
-
-on:
-  pull_request:
-    branches: [ 'main', 'release-*' ]
-
-jobs:
-  build:
-    uses: knative/actions/.github/workflows/go-build.yaml@main

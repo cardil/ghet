@@ -53,7 +53,7 @@ func CreatePlan(ctx context.Context, args Args) (*Plan, error) {
 	log.WithFields(logging.Fields{"assets": namesOf(rr.Assets)}).
 		Debug("Checking assets")
 	for _, asset := range rr.Assets {
-		if args.Asset.Matches(asset.GetName()) {
+		if args.Matches(asset.GetName()) {
 			a := githubapi.Asset{
 				ID:          asset.GetID(),
 				Name:        asset.GetName(),

@@ -24,8 +24,8 @@ func (p Plan) extractArchives(ctx context.Context, args Args) error {
 	for _, asset := range index.Archives {
 		widgets.Printf("📦 Extracting archive: %s", color.Cyan.Sprintf(asset.Name))
 		ar := archiveAsset{Asset: asset, plan: &p}
-		ctx = logging.EnsureLogger(ctx, logging.Fields{"asset": asset.Name})
-		if err := ar.extract(ctx, args); err != nil {
+		lctx := logging.EnsureLogger(ctx, logging.Fields{"asset": asset.Name})
+		if err := ar.extract(lctx, args); err != nil {
 			return err
 		}
 	}
@@ -104,7 +104,7 @@ func extractBinary(
 	progress := widgets.NewProgress(int(fi.Size()), tui.Message{
 		Text: label, PaddingSize: len(label),
 	})
-	binaryPath := path.Join(args.Destination, args.FileName.ToString())
+	binaryPath := path.Join(args.Destination, args.ToString())
 	if args.MultipleBinaries {
 		binaryPath = path.Join(args.Destination, binary.Name())
 	}
@@ -194,7 +194,7 @@ func findBinaries(ctx context.Context, args Args, fsys fs.FS) ([]compressedBinar
 		if fi, err = d.Info(); err != nil {
 			return unexpected(err)
 		}
-		if !d.IsDir() && isExecutable(fi.Mode().Perm()) && strings.Contains(filename, args.FileName.BaseName) {
+		if !d.IsDir() && isExecutable(fi.Mode().Perm()) && strings.Contains(filename, args.BaseName) {
 			binaries = append(binaries, compressedBinary{p, fi})
 		}
 		return nil

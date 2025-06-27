@@ -14,7 +14,7 @@ import (
 func (p Plan) moveBinaries(ctx context.Context, args Args) error {
 	l := logging.LoggerFrom(ctx)
 	index := githubapi.CreateIndex(p.Assets)
-	binaryName := args.FileName.ToString()
+	binaryName := args.ToString()
 	for _, binary := range index.Binaries {
 		if len(index.Binaries) > 1 {
 			binaryName = binary.Name

@@ -161,6 +161,17 @@ func TestCreatePlan(t *testing.T) {
 				ContentType: "text/plain; charset=utf-8",
 			}},
 		}},
+	}, {
+		name: "engineerd/wasm-to-oci@v0.1.2",
+		os:   github.OSLinuxGnu,
+		arch: github.ArchAMD64,
+		want: result{version: "v0.1.2", Plan: download.Plan{
+			Assets: []ghapi.Asset{{
+				Name:        "linux-amd64-wasm-to-oci",
+				Size:        11_149_312,
+				ContentType: "application/octet-stream",
+			}},
+		}},
 	}}
 	for _, tc := range testCases {
 		t.Run(tc.name, tc.performTest())
@@ -414,6 +425,9 @@ func autoResponses(t testingT, args createPlanArgs) []response {
 		reqPath = fmt.Sprintf("/repos/%s/%s/releases/latest",
 			args.owner, args.repo)
 	}
+	// Create with something like:
+	// $ http --follow api.github.com/repos/<1>/<2>/releases/tags/<3> >
+	//     pkg/ghet/download/testdata/GET-<1>-<2>-releases-<3>.json
 	testfile := fmt.Sprintf("GET-%s-%s-releases-%s.json",
 		args.owner, args.repo, args.tag)
 	return []response{
