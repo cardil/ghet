@@ -1,0 +1,12 @@
+name: Build
+
+on:
+  push:
+    branches: [ 'main', 'release-*' ]
+
+  pull_request:
+    branches: [ 'main', 'release-*' ]
+
+jobs:
+  build:
+    uses: knative/actions/.github/workflows/reusable-go-build.yaml@main

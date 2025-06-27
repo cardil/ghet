@@ -1,4 +1,4 @@
-name: Code Style
+name: 'Security'
 
 on:
   push:
@@ -8,6 +8,5 @@ on:
     branches: [ 'main', 'release-*' ]
 
 jobs:
-
-  style:
-    uses: knative/actions/.github/workflows/style.yaml@main
+  analyze:
+    uses: knative/actions/.github/workflows/reusable-security.yaml@main
