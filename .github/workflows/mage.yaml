@@ -1,0 +1,32 @@
+name: Mage
+
+on:
+  push:
+    branches: [ 'main', 'release-*' ]
+
+  pull_request:
+    branches: [ 'main', 'release-*' ]
+
+env:
+  FORCE_COLOR: true
+
+jobs:
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go-version:
+          - '1.24'
+    steps:
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go-version }}
+        id: go
+
+      - uses: actions/checkout@v4
+
+      - name: Build & Test
+        run: ./mage

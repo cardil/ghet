@@ -15,19 +15,18 @@ const (
 	CacheDirEnvName  = "GHET_CACHE_DIR"
 )
 
-var (
-	configDirKey = struct{}{} //nolint:gochecknoglobals
-	cacheDirKey  = struct{}{} //nolint:gochecknoglobals
-)
+type cacheDirKey struct{}
+
+type configDirKey struct{}
 
 func Config(ctx context.Context) string {
-	return userPath(ctx, configDirKey, ConfigDirEnvName, func() string {
+	return userPath(ctx, configDirKey{}, ConfigDirEnvName, func() string {
 		return configdir.LocalConfig(metadata.Name)
 	})
 }
 
 func Cache(ctx context.Context) string {
-	return userPath(ctx, cacheDirKey, CacheDirEnvName, func() string {
+	return userPath(ctx, cacheDirKey{}, CacheDirEnvName, func() string {
 		return configdir.LocalCache(metadata.Name)
 	})
 }

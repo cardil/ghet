@@ -12,6 +12,18 @@ type FileName struct {
 	Extension string
 }
 
+func NewFileName(s string) FileName {
+	basename := s
+	ext := path.Ext(s)
+	if ext != "" {
+		basename = strings.TrimSuffix(s, ext)
+	}
+	return FileName{
+		BaseName:  basename,
+		Extension: ext,
+	}
+}
+
 func (n FileName) ToString() string {
 	if n.Extension == "" {
 		return n.BaseName
@@ -72,25 +84,18 @@ type Asset struct {
 	Checksums
 }
 
-func NewFileName(s string) FileName {
-	basename := s
-	ext := path.Ext(s)
-	if ext != "" {
-		basename = strings.TrimSuffix(s, ext)
-	}
-	return FileName{
-		BaseName:  basename,
-		Extension: ext,
-	}
-}
-
 func (a Asset) Matches(filename string) bool {
 	name := strings.ToLower(filename)
-	basename := strings.ToLower(a.FileName.BaseName)
-	coords := strings.TrimPrefix(name, basename)
-	cm := a.Checksums.matcher(basename, a.Architecture, a.OperatingSystem)
-	return cm.Matches(name) ||
-		(strings.HasPrefix(name, basename) &&
-			a.Architecture.Matches(coords) &&
-			a.OperatingSystem.Matches(coords))
+	basename := strings.ToLower(a.BaseName)
+	coords := strings.Trim(
+		strings.TrimSuffix(
+			strings.TrimPrefix(name, basename),
+			basename,
+		), "-_",
+	)
+	cm := a.matcher(basename, a.Architecture, a.OperatingSystem)
+	return cm.Matches(name) || ((strings.HasPrefix(name, basename) ||
+		strings.HasSuffix(name, basename)) &&
+		a.Architecture.Matches(coords) &&
+		a.OperatingSystem.Matches(coords))
 }
