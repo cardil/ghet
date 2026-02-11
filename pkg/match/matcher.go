@@ -23,6 +23,7 @@ func Any(matchers ...Matcher) Matcher {
 				return true
 			}
 		}
+
 		return false
 	})
 }
@@ -33,6 +34,7 @@ func Every(matchers ...Matcher) Matcher {
 		for _, matcher := range matchers {
 			m = m && matcher.Matches(name)
 		}
+
 		return m
 	})
 }

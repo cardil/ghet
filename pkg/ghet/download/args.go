@@ -6,5 +6,6 @@ import (
 
 type Args struct {
 	install.Args
+
 	Destination string
 }

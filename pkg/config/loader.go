@@ -17,21 +17,26 @@ func Load(ctx context.Context, file string) (Config, error) {
 	l := logging.LoggerFrom(ctx).
 		WithFields(logging.Fields{"configPath": file})
 	l.Debug("Loading config as YAML")
+
 	defaults := Config{
 		Sites: []Site{{
 			Type:    TypeGitHub,
 			Address: "github.com",
 		}},
 	}
+
 	var cfg Config
+
 	if fileNotExists(file) {
 		l.Debug("Config file does not exist, using defaults")
 		return defaults, nil
 	}
+
 	bytes, err := os.ReadFile(file)
 	if err != nil {
 		return Config{}, asInvalidConfigErr(err)
 	}
+
 	err = yaml.Unmarshal(bytes, &cfg)
 	if err != nil {
 		return Config{}, asInvalidConfigErr(err)
@@ -49,6 +54,7 @@ func asInvalidConfigErr(err error) error {
 	if errors.Is(err, ErrInvalidConfigFile) {
 		return err
 	}
+
 	return errors.WithStack(
 		errors.Wrap(ErrInvalidConfigFile, fmt.Sprintf("%+v", err)),
 	)

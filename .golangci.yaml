@@ -14,9 +14,11 @@ linters:
     - godox
     - ireturn
     - nlreturn
+    - noinlineerr
     - paralleltest
     - varnamelen
     - wsl
+    - wsl_v5
   settings:
     wrapcheck:
       ignore-package-globs:

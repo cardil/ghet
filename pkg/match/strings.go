@@ -9,6 +9,7 @@ func Substr(sub ...string) Matcher {
 			return strings.Contains(name, s)
 		})
 	}
+
 	return Every(mchs...)
 }
 

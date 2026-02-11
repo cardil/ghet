@@ -20,20 +20,25 @@ import (
 
 func (p Plan) extractArchives(ctx context.Context, args Args) error {
 	widgets := tui.NewWidgets(ctx)
+
 	index := githubapi.CreateIndex(p.Assets)
 	for _, asset := range index.Archives {
-		widgets.Printf("📦 Extracting archive: %s", color.Cyan.Sprintf(asset.Name))
+		widgets.Printf("📦 Extracting archive: %s", color.Cyan.Sprint(asset.Name))
 		ar := archiveAsset{Asset: asset, plan: &p}
+
 		lctx := logging.EnsureLogger(ctx, logging.Fields{"asset": asset.Name})
-		if err := ar.extract(lctx, args); err != nil {
+		err := ar.extract(lctx, args)
+		if err != nil {
 			return err
 		}
 	}
+
 	return nil
 }
 
 type archiveAsset struct {
 	githubapi.Asset
+
 	plan *Plan
 }
 
@@ -57,23 +62,27 @@ func (aa archiveAsset) extract(ctx context.Context, args Args) error {
 	}
 
 	var binaries []compressedBinary
-	if binaries, err = findBinaries(ctx, args, fsys); err != nil {
+	binaries, err = findBinaries(ctx, args, fsys)
+	if err != nil {
 		return err
 	}
 
-	if binaries, err = chooseBinaries(ctx, args, binaries); err != nil {
+	binaries, err = chooseBinaries(ctx, args, binaries)
+	if err != nil {
 		return err
 	}
 
 	var cv *checksumVerifier
 	if args.VerifyInArchive {
-		if cv, err = aa.plan.newChecksumVerifier(ctx); err != nil {
+		cv, err = aa.plan.newChecksumVerifier(ctx)
+		if err != nil {
 			return err
 		}
 	}
 
 	for _, binary := range binaries {
-		if err = extractBinary(ctx, args, fsys, binary, cv); err != nil {
+		err = extractBinary(ctx, args, fsys, binary, cv)
+		if err != nil {
 			return err
 		}
 	}
@@ -91,10 +100,13 @@ func extractBinary(
 		fi  fs.FileInfo
 		err error
 	)
+
 	widgets := tui.NewWidgets(ctx)
+
 	if fi, err = archiver.TopDirStat(fsys, binary.path); err != nil {
 		return unexpected(err)
 	}
+
 	if ff, err = archiver.TopDirOpen(fsys, binary.path); err != nil {
 		return unexpected(err)
 	}
@@ -104,10 +116,12 @@ func extractBinary(
 	progress := widgets.NewProgress(int(fi.Size()), tui.Message{
 		Text: label, PaddingSize: len(label),
 	})
+
 	binaryPath := path.Join(args.Destination, args.ToString())
 	if args.MultipleBinaries {
 		binaryPath = path.Join(args.Destination, binary.Name())
 	}
+
 	hp := hashPair{}
 	if err = extractToBinaryPath(binaryPath, args, cv, binary, progress, ff, &hp); err != nil {
 		return err
@@ -119,6 +133,7 @@ func extractBinary(
 			return fmt.Errorf("%w: %s != %s", ErrChecksumMismatch,
 				hp.expect, actualHash)
 		}
+
 		widgets.Printf("✅ Checksum match the extracted binary")
 	}
 
@@ -143,18 +158,21 @@ func extractToBinaryPath(
 	if err != nil {
 		return unexpected(err)
 	}
+
 	var writer io.Writer = out
+
 	if args.VerifyInArchive && cv != nil {
 		for _, entry := range cv.entries {
 			if entry.Matches(binary.path) {
 				hp.actual = entry.newDigest()
 				writer = io.MultiWriter(out, hp.actual)
 				hp.expect = entry.hash
+
 				break
 			}
 		}
 	}
-	if perr := progress.With(func(pc tui.ProgressControl) error {
+	perr := progress.With(func(pc tui.ProgressControl) error {
 		_, err = io.Copy(writer, io.TeeReader(ff, pc))
 		if err != nil {
 			err = unexpected(err)
@@ -162,18 +180,23 @@ func extractToBinaryPath(
 			return err
 		}
 		return nil
-	}); perr != nil {
+	})
+
+	if perr != nil {
 		return perr //nolint:wrapcheck
 	}
+
 	if err = out.Close(); err != nil {
 		return unexpected(err)
 	}
+
 	return nil
 }
 
 type compressedBinary struct {
-	path string
 	fs.FileInfo
+
+	path string
 }
 
 func (b compressedBinary) String() string {
@@ -183,7 +206,7 @@ func (b compressedBinary) String() string {
 func findBinaries(ctx context.Context, args Args, fsys fs.FS) ([]compressedBinary, error) {
 	l := logging.LoggerFrom(ctx)
 	binaries := make([]compressedBinary, 0, 1)
-	if err := fs.WalkDir(fsys, ".", func(p string, d fs.DirEntry, err error) error {
+	err := fs.WalkDir(fsys, ".", func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -195,14 +218,20 @@ func findBinaries(ctx context.Context, args Args, fsys fs.FS) ([]compressedBinar
 			return unexpected(err)
 		}
 		if !d.IsDir() && isExecutable(fi.Mode().Perm()) && strings.Contains(filename, args.BaseName) {
-			binaries = append(binaries, compressedBinary{p, fi})
+			binaries = append(binaries, compressedBinary{
+				path:     p,
+				FileInfo: fi,
+			})
 		}
 		return nil
-	}); err != nil {
+	})
+	if err != nil {
 		return nil, unexpected(err)
 	}
+
 	l.WithFields(logging.Fields{"binaries": fmt.Sprintf("%q", binaries)}).
 		Debugf("Found %d binaries", len(binaries))
+
 	return binaries, nil
 }
 
@@ -210,6 +239,7 @@ func chooseBinaries(ctx context.Context, args Args, binaries []compressedBinary)
 	if args.MultipleBinaries {
 		return binaries, nil
 	}
+
 	var (
 		err    error
 		binary compressedBinary
@@ -217,6 +247,7 @@ func chooseBinaries(ctx context.Context, args Args, binaries []compressedBinary)
 	if binary, err = chooseBinary(ctx, binaries); err != nil {
 		return nil, err
 	}
+
 	return []compressedBinary{binary}, nil
 }
 
@@ -224,14 +255,18 @@ func chooseBinary(ctx context.Context, binaries []compressedBinary) (compressedB
 	l := logging.LoggerFrom(ctx)
 	if len(binaries) != 1 {
 		l.Warnf("Can't choose binary automatically: %q", binaries)
+
 		widgets, err := tui.NewInteractiveWidgets(ctx)
 		if err != nil {
 			return compressedBinary{}, fmt.Errorf("%w: can't choose binary: %q",
 				err, binaries)
 		}
+
 		chooser := tui.NewChooser[compressedBinary](widgets)
+
 		return chooser.Choose(binaries, "Choose the binary"), nil
 	}
+
 	return binaries[0], nil
 }
 

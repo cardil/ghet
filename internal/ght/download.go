@@ -10,6 +10,7 @@ import (
 
 type downloadArgs struct {
 	installArgs
+
 	destination string
 }
 
@@ -23,6 +24,7 @@ func downloadCmd(args *Args) *cobra.Command {
 		Example:           "\n * ght download -v 0.1.0 -t /tmp cardil/ghet",
 	}
 	da.setFlags(c)
+
 	return c
 }
 
