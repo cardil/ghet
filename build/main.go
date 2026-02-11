@@ -2,7 +2,7 @@ package main
 
 import (
 	"os"
-	"path"
+	"path/filepath"
 	"runtime"
 
 	"github.com/cardil/ghet/build/pipelines"
@@ -18,6 +18,9 @@ func main() {
 }
 
 func rootDir() string {
-	_, file, _, _ := runtime.Caller(0) //nolint:dogsled
-	return path.Dir(path.Dir(file))
+	_, file, _, ok := runtime.Caller(0)
+	if !ok {
+		panic("unable to determine source file path")
+	}
+	return filepath.Dir(filepath.Dir(file))
 }

@@ -34,7 +34,10 @@ func runEditorconfigChecker(a *goyek.A) {
 	toolsDir := filepath.Join("build", "_output", "tools", "editorconfig-checker-"+version)
 	checkerPath := filepath.Join(toolsDir, "editorconfig-checker")
 
-	if _, err := os.Stat(checkerPath); os.IsNotExist(err) {
+	if _, err := os.Stat(checkerPath); err != nil {
+		if !os.IsNotExist(err) {
+			a.Fatal("checking editorconfig-checker path:", err)
+		}
 		a.Log("Downloading editorconfig-checker", version)
 		args := download.Args{
 			Args: install.Args{
@@ -74,7 +77,10 @@ func runGolangciLint(a *goyek.A) {
 	toolsDir := filepath.Join("build", "_output", "tools", "golangci-lint-"+version)
 	linterPath := filepath.Join(toolsDir, "golangci-lint")
 
-	if _, err := os.Stat(linterPath); os.IsNotExist(err) {
+	if _, err := os.Stat(linterPath); err != nil {
+		if !os.IsNotExist(err) {
+			a.Fatal("checking golangci-lint path:", err)
+		}
 		a.Log("Downloading golangci-lint", version)
 		args := download.Args{
 			Args: install.Args{

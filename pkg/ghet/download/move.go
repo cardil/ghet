@@ -3,7 +3,7 @@ package download
 import (
 	"context"
 	"os"
-	"path"
+	"path/filepath"
 	"strings"
 
 	"github.com/1set/gut/yos"
@@ -24,7 +24,7 @@ func (p Plan) moveBinaries(ctx context.Context, args Args) error {
 		l.WithFields(logging.Fields{"binary": binary}).Debug("Moving binary")
 		source := p.cachePath(ctx, binary)
 
-		target := path.Join(args.Destination, binaryName)
+		target := filepath.Join(args.Destination, binaryName)
 		err := yos.MoveFile(source, target)
 		if err != nil {
 			return unexpected(err)

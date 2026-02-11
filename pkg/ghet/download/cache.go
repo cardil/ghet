@@ -6,7 +6,7 @@ import (
 	"hash/crc32"
 	"log"
 	"os"
-	"path"
+	"path/filepath"
 	"strconv"
 
 	configdir "github.com/cardil/ghet/pkg/config/dir"
@@ -14,17 +14,17 @@ import (
 )
 
 func (p Plan) cachePath(ctx context.Context, asset githubapi.Asset) string {
-	dir := path.Join(configdir.Cache(ctx), p.transationID())
+	dir := filepath.Join(configdir.Cache(ctx), p.transationID())
 	err := os.MkdirAll(dir, executableMode)
 	if err != nil {
 		log.Fatal(unexpected(err))
 	}
 
-	return path.Join(dir, asset.Name)
+	return filepath.Join(dir, asset.Name)
 }
 
 func (p Plan) cleanCache(ctx context.Context) error {
-	fp := path.Join(configdir.Cache(ctx), p.transationID())
+	fp := filepath.Join(configdir.Cache(ctx), p.transationID())
 	err := os.RemoveAll(fp)
 	if err != nil {
 		return unexpected(err)

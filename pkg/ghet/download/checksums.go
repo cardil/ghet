@@ -12,6 +12,7 @@ import (
 	"io"
 	"os"
 	"path"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -300,7 +301,7 @@ func (e checksumEntry) Matches(name string) bool {
 
 func (e checksumEntry) verify(asset githubapi.Asset, dest string) error {
 	dig := e.newDigest()
-	fp := path.Join(dest, asset.Name)
+	fp := filepath.Join(dest, asset.Name)
 
 	var reader io.Reader
 

@@ -8,7 +8,7 @@ import (
 	"io"
 	"io/fs"
 	"os"
-	"path"
+	"path/filepath"
 	"strings"
 
 	githubapi "github.com/cardil/ghet/pkg/github/api"
@@ -117,9 +117,9 @@ func extractBinary(
 		Text: label, PaddingSize: len(label),
 	})
 
-	binaryPath := path.Join(args.Destination, args.ToString())
+	binaryPath := filepath.Join(args.Destination, args.ToString())
 	if args.MultipleBinaries {
-		binaryPath = path.Join(args.Destination, binary.Name())
+		binaryPath = filepath.Join(args.Destination, binary.Name())
 	}
 
 	hp := hashPair{}
