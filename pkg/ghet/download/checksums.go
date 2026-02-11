@@ -11,7 +11,6 @@ import (
 	"hash"
 	"io"
 	"os"
-	"path"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -62,7 +61,7 @@ func (p Plan) verifyChecksums(ctx context.Context) error {
 	artifacts = append(append(artifacts, index.Archives...), index.Binaries...)
 
 	err = cs.verify(ctx, artifacts, func(curr githubapi.Asset) string {
-		return path.Dir(p.cachePath(ctx, curr))
+		return filepath.Dir(p.cachePath(ctx, curr))
 	})
 	if err != nil {
 		return err

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -14,6 +15,15 @@ func main() {
 		panic(err)
 	}
 	goyek.DefaultFlow = pipelines.Default()
+
+	// Handle --list flag
+	if len(os.Args) > 1 && os.Args[1] == "--list" {
+		for _, task := range goyek.Tasks() {
+			fmt.Println(task.Name())
+		}
+		return
+	}
+
 	goyek.Main(os.Args[1:])
 }
 

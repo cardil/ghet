@@ -32,7 +32,7 @@ func runEditorconfigChecker(a *goyek.A) {
 	}
 
 	toolsDir := filepath.Join("build", "_output", "tools", "editorconfig-checker-"+version)
-	checkerPath := filepath.Join(toolsDir, "editorconfig-checker")
+	checkerPath := filepath.Join(toolsDir, "ec")
 
 	if _, err := os.Stat(checkerPath); err != nil {
 		if !os.IsNotExist(err) {
@@ -48,6 +48,10 @@ func runEditorconfigChecker(a *goyek.A) {
 							Owner: "editorconfig-checker",
 							Repo:  "editorconfig-checker",
 						},
+					},
+					// Override BaseName because releases use "ec-*" not "editorconfig-checker"
+					FileName: github.FileName{
+						BaseName: "ec",
 					},
 				},
 			},
