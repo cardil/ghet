@@ -39,6 +39,7 @@ type installArgs struct {
 
 func (ia *installArgs) defaults() installArgs {
 	defs := install.Args{}.WithDefaults()
+
 	return installArgs{
 		site:      defs.Address,
 		checksums: defs.Checksums.ToString(),
@@ -62,6 +63,7 @@ func (ia *installArgs) setFlags(c *cobra.Command) {
 		"if set, will extract all binaries from the archive")
 	fl.BoolVar(&ia.verifyInArchive, "verify-in-archive", defs.verifyInArchive,
 		"if set, will verify the checksums against the binaries in the archive")
+
 	c.Args = cobra.ExactArgs(1)
 }
 
@@ -72,9 +74,11 @@ func (ia *installArgs) valiadate() func(cmd *cobra.Command, args []string) error
 			cmd.SilenceUsage = false
 			return errRepoNotGiven
 		}
+
 		if ia.basename == "" {
 			ia.basename = path.Base(ia.repo)
 		}
+
 		return nil
 	}
 }
@@ -97,11 +101,13 @@ func (ia *installArgs) parse(ctx context.Context) install.Args {
 		VerifyInArchive:  ia.verifyInArchive,
 	}
 	args = args.WithDefaults()
+
 	return args
 }
 
 func (ia *installArgs) repository() github.Repository {
 	m := reporRe.FindStringSubmatch(ia.repo)
+
 	return github.Repository{
 		Owner: m[1],
 		Repo:  m[2],

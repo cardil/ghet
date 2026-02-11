@@ -31,6 +31,7 @@ func noArchMatches(name string) bool {
 			return false
 		}
 	}
+
 	return true
 }
 

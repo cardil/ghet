@@ -20,6 +20,9 @@ type Plan struct {
 	Assets []githubapi.Asset
 }
 
+// CreatePlan creates a download plan for the given arguments.
+//
+//nolint:funlen // This function orchestrates multiple steps and is clearer as a single flow
 func CreatePlan(ctx context.Context, args Args) (*Plan, error) {
 	ctx = logging.EnsureLogger(ctx, logging.Fields{
 		"owner": args.Owner,
@@ -27,15 +30,18 @@ func CreatePlan(ctx context.Context, args Args) (*Plan, error) {
 	})
 	log := logging.LoggerFrom(ctx)
 	client := githubapi.FromContext(ctx)
+
 	var (
 		rr  *github.RepositoryRelease
 		r   *github.Response
 		err error
 	)
+
 	widgets := tui.NewWidgets(ctx)
+
 	spin := widgets.NewSpinner(
 		fmt.Sprintf("⛳️ Getting information about %s release",
-			color.Cyan.Sprintf(args.Tag)),
+			color.Cyan.Sprint(args.Tag)),
 	)
 	if err = spin.With(func(_ tui.SpinnerControl) error {
 		rr, r, err = fetchRelease(ctx, args, client)
@@ -50,8 +56,10 @@ func CreatePlan(ctx context.Context, args Args) (*Plan, error) {
 	}).Debug("Github API response")
 
 	assets := make([]githubapi.Asset, 0, 1)
+
 	log.WithFields(logging.Fields{"assets": namesOf(rr.Assets)}).
 		Debug("Checking assets")
+
 	for _, asset := range rr.Assets {
 		if args.Matches(asset.GetName()) {
 			a := githubapi.Asset{
@@ -65,15 +73,19 @@ func CreatePlan(ctx context.Context, args Args) (*Plan, error) {
 			assets = append(assets, a)
 		}
 	}
+
 	index := githubapi.CreateIndex(assets)
+
 	assets = prioritizeArchives(index)
 	if len(assets) == 0 {
 		return nil, errors.WithStack(ErrNoAssetFound)
 	}
+
 	plan := &Plan{Assets: assets}
 	log.WithFields(logging.Fields{"plan": plan}).Debug("Plan created")
 	widgets.Printf("🎉 Found %s matching assets for %s",
-		color.Cyan.Sprint(len(assets)), color.Cyan.Sprintf(rr.GetTagName()))
+		color.Cyan.Sprint(len(assets)), color.Cyan.Sprint(rr.GetTagName()))
+
 	return plan, nil
 }
 
@@ -90,6 +102,7 @@ func (p Plan) Download(ctx context.Context, args Args) error {
 			longestName = nameLen
 		}
 	}
+
 	for i, asset := range p.Assets {
 		ai := assetInfo{
 			Asset:       asset,
@@ -97,22 +110,28 @@ func (p Plan) Download(ctx context.Context, args Args) error {
 			total:       len(p.Assets),
 			longestName: longestName,
 		}
-		if err := p.downloadAsset(ctx, ai); err != nil {
+		err := p.downloadAsset(ctx, ai)
+		if err != nil {
 			return err
 		}
 	}
+
 	if !args.VerifyInArchive {
-		if err := p.verifyChecksums(ctx); err != nil {
+		err := p.verifyChecksums(ctx)
+		if err != nil {
 			return err
 		}
 	}
-	if err := os.MkdirAll(args.Destination, executableMode); err != nil {
+	err := os.MkdirAll(args.Destination, executableMode)
+	if err != nil {
 		return unexpected(err)
 	}
-	if err := p.extractArchives(ctx, args); err != nil {
+	err = p.extractArchives(ctx, args)
+	if err != nil {
 		return err
 	}
-	if err := p.moveBinaries(ctx, args); err != nil {
+	err = p.moveBinaries(ctx, args)
+	if err != nil {
 		return err
 	}
 
@@ -123,12 +142,15 @@ func prioritizeArchives(idx githubapi.IndexedAssets) []githubapi.Asset {
 	if len(idx.Archives) > 0 && len(idx.Binaries) > 0 {
 		assets := make([]githubapi.Asset, 0, len(idx.Archives)+len(idx.Checksums))
 		assets = append(assets, idx.Archives...)
+
 		return append(assets, idx.Checksums...)
 	}
+
 	assets := make([]githubapi.Asset, 0, len(idx.Archives)+len(idx.Binaries)+len(idx.Checksums))
 	assets = append(assets, idx.Binaries...)
 	assets = append(assets, idx.Archives...)
 	assets = append(assets, idx.Checksums...)
+
 	return assets
 }
 
@@ -137,6 +159,7 @@ func namesOf(assets []*github.ReleaseAsset) []string {
 	for _, asset := range assets {
 		names = append(names, asset.GetName())
 	}
+
 	return names
 }
 
@@ -149,20 +172,25 @@ func fetchRelease(
 		rr  *github.RepositoryRelease
 		r   *github.Response
 	)
+
 	log := logging.LoggerFrom(ctx)
 	if args.Tag == pkggithub.LatestTag {
 		log.Debug("Getting latest release")
+
 		if rr, r, err = client.Repositories.GetLatestRelease(ctx, args.Owner, args.Repo); err != nil {
 			return nil, nil, errors.WithStack(err)
 		}
+
 		args.Tag = rr.GetTagName()
 	} else {
 		log.WithFields(logging.Fields{"tag": args.Tag}).
 			Debug("Getting release")
+
 		if rr, r, err = client.Repositories.GetReleaseByTag(ctx,
 			args.Owner, args.Repo, args.Tag); err != nil {
 			return nil, nil, errors.WithStack(err)
 		}
 	}
+
 	return rr, r, nil
 }

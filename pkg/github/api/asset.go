@@ -24,6 +24,7 @@ type IndexedAssets struct {
 
 func CreateIndex(assets []Asset) IndexedAssets {
 	index := IndexedAssets{}
+
 	for _, asset := range assets {
 		name := asset.Name
 		switch {
@@ -35,6 +36,7 @@ func CreateIndex(assets []Asset) IndexedAssets {
 			index.Binaries = append(index.Binaries, asset)
 		}
 	}
+
 	return index
 }
 

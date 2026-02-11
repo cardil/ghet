@@ -14,10 +14,12 @@ type FileName struct {
 
 func NewFileName(s string) FileName {
 	basename := s
+
 	ext := path.Ext(s)
 	if ext != "" {
 		basename = strings.TrimSuffix(s, ext)
 	}
+
 	return FileName{
 		BaseName:  basename,
 		Extension: ext,
@@ -28,10 +30,12 @@ func (n FileName) ToString() string {
 	if n.Extension == "" {
 		return n.BaseName
 	}
+
 	joiner := "."
 	if strings.HasPrefix(n.Extension, ".") {
 		joiner = ""
 	}
+
 	return n.BaseName + joiner + n.Extension
 }
 
@@ -61,12 +65,15 @@ func emptyChecksums() []Checksums {
 func (c Checksums) matcher(basename string, arch Architecture, sys OperatingSystem) match.Matcher {
 	if c.isEmpty() {
 		cc := emptyChecksums()
+
 		mm := make([]match.Matcher, len(cc))
 		for i, ch := range cc {
 			mm[i] = ch.matcher(basename, arch, sys)
 		}
+
 		return match.Any(mm...)
 	}
+
 	return match.MatcherFn(func(name string) bool {
 		return c.ToString() == name ||
 			strings.HasPrefix(name, basename) &&
@@ -94,6 +101,7 @@ func (a Asset) Matches(filename string) bool {
 		), "-_",
 	)
 	cm := a.matcher(basename, a.Architecture, a.OperatingSystem)
+
 	return cm.Matches(name) || ((strings.HasPrefix(name, basename) ||
 		strings.HasSuffix(name, basename)) &&
 		a.Architecture.Matches(coords) &&

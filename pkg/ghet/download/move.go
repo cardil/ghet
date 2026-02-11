@@ -3,7 +3,7 @@ package download
 import (
 	"context"
 	"os"
-	"path"
+	"path/filepath"
 	"strings"
 
 	"github.com/1set/gut/yos"
@@ -15,22 +15,28 @@ func (p Plan) moveBinaries(ctx context.Context, args Args) error {
 	l := logging.LoggerFrom(ctx)
 	index := githubapi.CreateIndex(p.Assets)
 	binaryName := args.ToString()
+
 	for _, binary := range index.Binaries {
 		if len(index.Binaries) > 1 {
 			binaryName = binary.Name
 		}
+
 		l.WithFields(logging.Fields{"binary": binary}).Debug("Moving binary")
 		source := p.cachePath(ctx, binary)
-		target := path.Join(args.Destination, binaryName)
-		if err := yos.MoveFile(source, target); err != nil {
+
+		target := filepath.Join(args.Destination, binaryName)
+		err := yos.MoveFile(source, target)
+		if err != nil {
 			return unexpected(err)
 		}
 
 		if strings.Contains(binary.ContentType, "octet-stream") {
-			if err := os.Chmod(target, executableMode); err != nil {
+			err := os.Chmod(target, executableMode)
+			if err != nil {
 				return unexpected(err)
 			}
 		}
 	}
+
 	return nil
 }

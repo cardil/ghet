@@ -10,6 +10,7 @@ func (c Config) Site(site string) Site {
 			return s
 		}
 	}
+
 	return Site{}
 }
 
@@ -20,9 +21,10 @@ const (
 )
 
 type Site struct {
-	Type    `json:"type"`
+	*Auth `json:"auth"`
+	Type  `json:"type"`
+
 	Address string `json:"address"`
-	*Auth   `json:"auth"`
 }
 
 type Auth struct {
@@ -33,6 +35,7 @@ func (a *Auth) EffectiveToken() string {
 	if a == nil {
 		return ""
 	}
+
 	return a.Token
 }
 
@@ -41,5 +44,6 @@ func (a *Auth) copy() *Auth {
 	if a.Token != "" {
 		i.Token = a.Token
 	}
+
 	return &i
 }
