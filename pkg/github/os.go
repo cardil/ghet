@@ -39,6 +39,7 @@ func noOsMatches(name string) bool {
 			return false
 		}
 	}
+
 	return true
 }
 
@@ -48,6 +49,7 @@ func CurrentOS() OperatingSystem {
 	if family == OSFamilyLinux {
 		return linuxFlavor()
 	}
+
 	return OperatingSystem(family)
 }
 

@@ -13,6 +13,7 @@ func (r regexMatcher) Matches(name string) bool {
 	for _, rx := range r.rxs {
 		m = m && rx.MatchString(name)
 	}
+
 	return m
 }
 
@@ -21,5 +22,6 @@ func Regex(regex ...string) Matcher {
 	for i, r := range regex {
 		rxs[i] = regexp.MustCompile(r)
 	}
+
 	return &regexMatcher{rxs}
 }

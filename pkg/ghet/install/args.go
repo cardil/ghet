@@ -11,6 +11,7 @@ import (
 type Args struct {
 	github.Asset
 	config.Site
+
 	MultipleBinaries bool
 	VerifyInArchive  bool
 }
@@ -29,14 +30,18 @@ func (a Args) WithDefaults() Args {
 			Address: "github.com",
 		},
 	}
-	if err := mergo.Merge(&a, defs); err != nil {
+	err := mergo.Merge(&a, defs)
+	if err != nil {
 		log.Fatal(err)
 	}
+
 	if a.BaseName == "" {
 		a.BaseName = a.Repo
 	}
+
 	if a.OperatingSystem == github.OSWindows && a.Extension == "" {
 		a.Extension = "exe"
 	}
+
 	return a
 }

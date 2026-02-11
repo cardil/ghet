@@ -20,6 +20,7 @@ const (
 
 type assetInfo struct {
 	githubapi.Asset
+
 	number      int
 	total       int
 	longestName int
@@ -34,15 +35,19 @@ func (p Plan) downloadAsset(ctx context.Context, asset assetInfo) error {
 	if fileExists(l, cachePath, asset.Size) {
 		l.WithFields(logging.Fields{"cachePath": cachePath}).
 			Debug("Asset already downloaded")
+
 		return nil
 	}
 
 	l.Debug("Downloading asset")
+
 	cl := githubapi.FromContext(ctx).Client()
+
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, asset.URL, nil)
 	if err != nil {
 		return errors.WithStack(err)
 	}
+
 	resp, err := cl.Do(req)
 	if err != nil {
 		return errors.WithStack(err)
@@ -66,12 +71,14 @@ func (p Plan) downloadAsset(ctx context.Context, asset assetInfo) error {
 		Text:        fmt.Sprintf(format, asset.number, asset.total, asset.Name),
 		PaddingSize: len(fmt.Sprintf(format, asset.total, asset.total, strings.Repeat("x", asset.longestName))),
 	})
+
 	return progress.With(func(pc tui.ProgressControl) error { //nolint:wrapcheck
 		_, err = io.Copy(out, io.TeeReader(resp.Body, pc))
 		if err != nil {
 			pc.Error(err)
 			return errors.WithStack(err)
 		}
+
 		return nil
 	})
 }
@@ -82,12 +89,16 @@ func fileExists(l logging.Logger, path string, size int) bool {
 		if fi.Size() == int64(size) {
 			return true
 		}
+
 		l.WithFields(logging.Fields{
 			"file-info": fi,
 			"size":      size,
 		}).Debug("File size mismatch")
+
 		_ = os.Remove(path)
+
 		return false
 	}
+
 	return !os.IsNotExist(err)
 }

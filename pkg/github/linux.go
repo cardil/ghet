@@ -9,12 +9,14 @@ import (
 )
 
 func linuxFlavor() OperatingSystem {
-	if fis, err := ldd.FList("/bin/sh"); err == nil {
+	fis, err := ldd.FList("/bin/sh")
+	if err == nil {
 		for _, fi := range fis {
 			if strings.Contains(fi, "musl") {
 				return OSLinuxMusl
 			}
 		}
 	}
+
 	return OSLinuxGnu
 }

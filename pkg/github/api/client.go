@@ -12,6 +12,7 @@ type clientKey struct{}
 
 func NewClient(ctx context.Context, token string) *github.Client {
 	var httpClient *http.Client
+
 	if token != "" {
 		src := oauth2.StaticTokenSource(
 			&oauth2.Token{AccessToken: token},
@@ -26,6 +27,7 @@ func FromContext(ctx context.Context) *github.Client {
 	if cl, ok := ctx.Value(clientKey{}).(*github.Client); ok {
 		return cl
 	}
+
 	return NewClient(ctx, "")
 }
 

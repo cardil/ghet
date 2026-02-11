@@ -8,6 +8,7 @@ type Repository struct {
 }
 
 type Release struct {
-	Tag string
 	Repository
+
+	Tag string
 }

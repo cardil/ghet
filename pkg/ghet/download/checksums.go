@@ -11,7 +11,7 @@ import (
 	"hash"
 	"io"
 	"os"
-	"path"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -45,20 +45,23 @@ var bsdStyleChecksums = regexp.MustCompile(`^(SHA[0-9]{1,3})\s+\(([^)]+)\)\s+=\s
 
 func (p Plan) verifyChecksums(ctx context.Context) error {
 	widgets := tui.NewWidgets(ctx)
+
 	cs, err := p.newChecksumVerifier(ctx)
 	if err != nil {
 		if errors.Is(err, ErrNoChecksum) {
 			widgets.Printf("⚠️ No checksums found. Skipping verification")
 			return nil
 		}
+
 		return err
 	}
 
 	index := githubapi.CreateIndex(p.Assets)
 	artifacts := make([]githubapi.Asset, 0, len(index.Archives)+len(index.Binaries))
 	artifacts = append(append(artifacts, index.Archives...), index.Binaries...)
+
 	err = cs.verify(ctx, artifacts, func(curr githubapi.Asset) string {
-		return path.Dir(p.cachePath(ctx, curr))
+		return filepath.Dir(p.cachePath(ctx, curr))
 	})
 	if err != nil {
 		return err
@@ -71,6 +74,7 @@ func (p Plan) verifyChecksums(ctx context.Context) error {
 
 func (p Plan) newChecksumVerifier(ctx context.Context) (*checksumVerifier, error) {
 	l := logging.LoggerFrom(ctx)
+
 	index := githubapi.CreateIndex(p.Assets)
 	if len(index.Checksums) == 0 {
 		l.Debug("No checksums to verify")
@@ -86,9 +90,12 @@ func (p Plan) newChecksumVerifier(ctx context.Context) (*checksumVerifier, error
 				l.Errorf("Number of checksums is %d. Expected just one.", len(index.Checksums))
 				return nil, fmt.Errorf("%w: %d", ErrTooManyChecksums, len(index.Checksums))
 			}
+
 			return nil, unexpected(err)
 		}
+
 		chooser := tui.NewChooser[githubapi.Asset](iwidgets)
+
 		selected := chooser.Choose(index.Checksums,
 			"⚠️ More than one checksum file found. Choose proper one")
 		for _, c := range index.Checksums {
@@ -98,7 +105,9 @@ func (p Plan) newChecksumVerifier(ctx context.Context) (*checksumVerifier, error
 			}
 		}
 	}
+
 	artifacts := make([]githubapi.Asset, 0, len(index.Archives)+len(index.Binaries))
+
 	artifacts = append(append(artifacts, index.Archives...), index.Binaries...)
 	if len(artifacts) == 0 {
 		l.Errorf("No assets to verify")
@@ -109,26 +118,32 @@ func (p Plan) newChecksumVerifier(ctx context.Context) (*checksumVerifier, error
 	l.Debug("Verifying checksum")
 
 	parser := checksumParser{Asset: ca, plan: &p}
+
 	verifier, err := parser.parse(ctx)
 	if err != nil {
 		return nil, err
 	}
+
 	return verifier, nil
 }
 
 type checksumParser struct {
 	githubapi.Asset
-	plan *Plan
 	*checksumVerifier
+
+	plan *Plan
 }
 
 func (p *checksumParser) parse(ctx context.Context) (*checksumVerifier, error) {
 	l := logging.LoggerFrom(ctx)
 	fp := p.plan.cachePath(ctx, p.Asset)
 	l.Debugf("Parsing checksum: %s", fp)
-	if _, ferr := os.Stat(fp); ferr != nil {
+
+	_, ferr := os.Stat(fp)
+	if ferr != nil {
 		return nil, unexpected(ferr)
 	}
+
 	file, ferr := os.Open(fp)
 	if ferr != nil {
 		return nil, unexpected(ferr)
@@ -136,16 +151,19 @@ func (p *checksumParser) parse(ctx context.Context) (*checksumVerifier, error) {
 	defer file.Close()
 
 	scanner := bufio.NewScanner(file)
+
 	p.checksumVerifier = &checksumVerifier{
 		entries: make([]checksumEntry, 0, 1),
 	}
 	for scanner.Scan() {
-		if err := p.parseLine(ctx, scanner.Text()); err != nil {
+		err := p.parseLine(ctx, scanner.Text())
+		if err != nil {
 			return nil, err
 		}
 	}
 
-	if err := scanner.Err(); err != nil {
+	err := scanner.Err()
+	if err != nil {
 		return nil, unexpected(err)
 	}
 
@@ -161,9 +179,12 @@ func (p *checksumParser) parseLine(ctx context.Context, line string) error {
 		if err != nil {
 			return err
 		}
+
 		entry = e
 	}
+
 	p.entries = append(p.entries, entry)
+
 	return nil
 }
 
@@ -190,13 +211,16 @@ func (p *checksumParser) parseRegularChecksum(line string) (checksumEntry, error
 		if err != nil {
 			return checksumEntry{}, err
 		}
+
 		entry.checksumAlgorithm = algo
 	}
+
 	return entry, nil
 }
 
 func (p *checksumParser) parseBSDStyleChecksum(_ context.Context, line string) checksumEntry {
 	match := bsdStyleChecksums.FindStringSubmatch(line)
+
 	return checksumEntry{
 		hash:              match[3],
 		filename:          match[2],
@@ -228,6 +252,7 @@ func (a checksumAlgorithm) bytesLen() int {
 	if err != nil {
 		panic(err)
 	}
+
 	return i / bitsPerByte
 }
 
@@ -244,6 +269,7 @@ func (a checksumAlgorithm) newDigest() hash.Hash {
 	case checksumAlgorithmSHA512:
 		return sha512.New()
 	}
+
 	panic("unexpected checksum algorithm: " + a)
 }
 
@@ -257,11 +283,13 @@ func checksumAlgorithmForHash(hash string) (checksumAlgorithm, error) {
 			return alg, nil
 		}
 	}
+
 	return "", fmt.Errorf("%w: %s", ErrUnknownChecksumAlgorithm, hash)
 }
 
 type checksumEntry struct {
 	checksumAlgorithm
+
 	hash     string
 	filename string
 }
@@ -272,22 +300,28 @@ func (e checksumEntry) Matches(name string) bool {
 
 func (e checksumEntry) verify(asset githubapi.Asset, dest string) error {
 	dig := e.newDigest()
-	fp := path.Join(dest, asset.Name)
+	fp := filepath.Join(dest, asset.Name)
+
 	var reader io.Reader
+
 	f, err := os.Open(fp)
 	if err != nil {
 		return unexpected(err)
 	}
 	defer f.Close()
+
 	reader = bufio.NewReader(f)
-	if _, err = io.Copy(dig, reader); err != nil {
+	_, err = io.Copy(dig, reader)
+	if err != nil {
 		return unexpected(err)
 	}
+
 	actual := hex.EncodeToString(dig.Sum(nil))
 	if actual != e.hash {
 		return fmt.Errorf("%w: %s, %s != %s",
 			ErrChecksumMismatch, asset.Name, actual, e.hash)
 	}
+
 	return nil
 }
 
@@ -300,18 +334,22 @@ func (c checksumVerifier) verify(
 	dirFn func(curr githubapi.Asset) string,
 ) error {
 	widgets := tui.NewWidgets(ctx)
+
 	for _, entry := range c.entries {
 		for i, curr := range assets {
 			if entry.Matches(curr.Name) {
 				spin := widgets.NewSpinner("🔍 Verifying checksum for " +
-					color.Cyan.Sprintf(curr.Name))
-				if err := spin.With(func(_ tui.SpinnerControl) error {
+					color.Cyan.Sprint(curr.Name))
+				err := spin.With(func(_ tui.SpinnerControl) error {
 					dest := dirFn(curr)
 					return entry.verify(curr, dest)
-				}); err != nil {
+				})
+				if err != nil {
 					return err //nolint:wrapcheck
 				}
+
 				assets = append(assets[:i], assets[i+1:]...)
+
 				break
 			}
 		}

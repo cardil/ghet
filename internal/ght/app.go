@@ -27,6 +27,7 @@ func (a *App) Command() *cobra.Command {
 		Short:        "Gʰet artifacts from GitHub releases",
 		SilenceUsage: true,
 	}
+
 	cmds := []func(*Args) *cobra.Command{
 		versionCmd,
 		installCmd,
@@ -37,24 +38,30 @@ func (a *App) Command() *cobra.Command {
 	for _, cmd := range cmds {
 		c.AddCommand(cmd(&a.Args))
 	}
+
 	c.SetOut(os.Stdout)
 	c.SetContext(logging.EnsureLogger(
 		logging.EnsureLogFile(context.Background())),
 	)
 	a.setFlags(c)
 	c.PostRunE = postRunE
+
 	return c
 }
 
 func postRunE(cmd *cobra.Command, _ []string) error {
 	ctx := cmd.Context()
+
 	logFile := logging.LogFileFrom(ctx)
-	if err := logFile.Sync(); err != nil {
+	err := logFile.Sync()
+	if err != nil {
 		return errors.WithStack(err)
 	}
-	if err := logFile.Close(); err != nil {
+	err = logFile.Close()
+	if err != nil {
 		return errors.WithStack(err)
 	}
+
 	return nil
 }
 
@@ -62,11 +69,14 @@ func handle(args *Args, fn func(ctx context.Context) error) func(cmd *cobra.Comm
 	return func(cmd *cobra.Command, _ []string) error {
 		ctx := cmd.Context()
 		ctx = output.WithContext(ctx, cmd)
+
 		cfg, err := config.Load(ctx, args.ConfigPath)
 		if err != nil {
 			return err
 		}
+
 		ctx = config.WithContext(ctx, cfg)
+
 		return fn(ctx)
 	}
 }

@@ -35,16 +35,20 @@ func userPath(ctx context.Context, key interface{}, envKey string, fn func() str
 	if p, ok := ctx.Value(key).(string); ok {
 		return ensurePathExists(p)
 	}
+
 	p := os.Getenv(envKey)
 	if p == "" {
 		p = fn()
 	}
+
 	return ensurePathExists(p)
 }
 
 func ensurePathExists(p string) string {
-	if err := configdir.MakePath(p); err != nil {
+	err := configdir.MakePath(p)
+	if err != nil {
 		log.Fatal(errors.WithStack(err))
 	}
+
 	return p
 }

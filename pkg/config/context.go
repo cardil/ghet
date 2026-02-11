@@ -9,6 +9,7 @@ func FromContext(ctx context.Context) Config {
 	if !ok {
 		return Config{}
 	}
+
 	return p
 }
 

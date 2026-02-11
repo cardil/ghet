@@ -13,6 +13,7 @@ func unexpected(err error) error {
 	if errors.Is(err, ErrUnexpected) {
 		return err
 	}
+
 	return errors.WithStack(
 		errors.Wrap(ErrUnexpected, fmt.Sprintf("%+v", err)),
 	)
