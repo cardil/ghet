@@ -17,83 +17,56 @@ func Lint() goyek.Task {
 		Usage: "Run linters",
 		Action: func(a *goyek.A) {
 			// Run editorconfig-checker
-			runEditorconfigChecker(a)
+			runTool(a, toolConfig{
+				envVar:  "EDITORCONFIG_CHECKER_VERSION",
+				version: "v3.1.0",
+				owner:   "editorconfig-checker",
+				repo:    "editorconfig-checker",
+				args:    nil,
+			})
 
 			// Run golangci-lint
-			runGolangciLint(a)
+			runTool(a, toolConfig{
+				envVar:  "GOLANGCI_LINT_VERSION",
+				version: "v2.4.0",
+				owner:   "golangci",
+				repo:    "golangci-lint",
+				args:    []string{"run", "./..."},
+			})
 		},
 	}
 }
 
-func runEditorconfigChecker(a *goyek.A) {
-	version := os.Getenv("EDITORCONFIG_CHECKER_VERSION")
-	if version == "" {
-		version = "v3.1.0"
-	}
-
-	toolsDir := filepath.Join("build", "_output", "tools", "editorconfig-checker-"+version)
-	checkerPath := filepath.Join(toolsDir, "ec")
-
-	if _, err := os.Stat(checkerPath); err != nil {
-		if !os.IsNotExist(err) {
-			a.Fatal("checking editorconfig-checker path:", err)
-		}
-		a.Log("Downloading editorconfig-checker", version)
-		args := download.Args{
-			Args: install.Args{
-				Asset: github.Asset{
-					Release: github.Release{
-						Tag: version,
-						Repository: github.Repository{
-							Owner: "editorconfig-checker",
-							Repo:  "editorconfig-checker",
-						},
-					},
-					// Override BaseName because releases use "ec-*" not "editorconfig-checker"
-					FileName: github.FileName{
-						BaseName: "ec",
-					},
-				},
-			},
-			Destination: toolsDir,
-		}
-		args.Args = args.Args.WithDefaults()
-
-		if err := download.Action(a.Context(), args); err != nil {
-			a.Fatal(err)
-		}
-	}
-
-	cmd := exec.CommandContext(a.Context(), checkerPath)
-	cmd.Stdout = a.Output()
-	cmd.Stderr = a.Output()
-	if err := cmd.Run(); err != nil {
-		a.Fatal(err)
-	}
+type toolConfig struct {
+	envVar  string
+	version string
+	owner   string
+	repo    string
+	args    []string
 }
 
-func runGolangciLint(a *goyek.A) {
-	version := os.Getenv("GOLANGCI_LINT_VERSION")
+func runTool(a *goyek.A, cfg toolConfig) {
+	version := os.Getenv(cfg.envVar)
 	if version == "" {
-		version = "v2.4.0"
+		version = cfg.version
 	}
 
-	toolsDir := filepath.Join("build", "_output", "tools", "golangci-lint-"+version)
-	linterPath := filepath.Join(toolsDir, "golangci-lint")
+	toolsDir := filepath.Join("build", "_output", "tools", cfg.repo+"-"+version)
+	toolPath := filepath.Join(toolsDir, cfg.repo)
 
-	if _, err := os.Stat(linterPath); err != nil {
+	if _, err := os.Stat(toolPath); err != nil {
 		if !os.IsNotExist(err) {
-			a.Fatal("checking golangci-lint path:", err)
+			a.Fatalf("checking %s/%s path: %v", cfg.owner, cfg.repo, err)
 		}
-		a.Log("Downloading golangci-lint", version)
+		a.Logf("Downloading %s/%s %s", cfg.owner, cfg.repo, version)
 		args := download.Args{
 			Args: install.Args{
 				Asset: github.Asset{
 					Release: github.Release{
 						Tag: version,
 						Repository: github.Repository{
-							Owner: "golangci",
-							Repo:  "golangci-lint",
+							Owner: cfg.owner,
+							Repo:  cfg.repo,
 						},
 					},
 				},
@@ -107,7 +80,7 @@ func runGolangciLint(a *goyek.A) {
 		}
 	}
 
-	cmd := exec.CommandContext(a.Context(), linterPath, "run", "./...")
+	cmd := exec.CommandContext(a.Context(), toolPath, cfg.args...)
 	cmd.Stdout = a.Output()
 	cmd.Stderr = a.Output()
 	if err := cmd.Run(); err != nil {
